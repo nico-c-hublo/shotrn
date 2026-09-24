@@ -32,6 +32,28 @@ If you add an entry point that reads configuration, call `loadEnvFile()` before
 `loadEnv()`, and add it to the documented-flow test in
 `backend/test/contract/env-file.e2e-spec.ts`.
 
+## Bisecting
+
+Every commit that has a `package.json` passes `npm run check` and `npm test`. The five
+documentation commits at the start of history predate the project and cannot be built,
+so a bisect script should report them as untestable rather than bad:
+
+```bash
+git bisect run sh -c '[ -f package.json ] || exit 125; npm ci --silent && npm run check && npm test'
+```
+
+Exit 125 is git's "skip this commit". Keep it: without it a bisect lands on a
+documentation commit and reports it as the culprit.
+
+Both test runners pass when a workspace has no tests yet, which is what keeps the early
+code commits runnable. The cost is that a broken `testMatch` glob would report success
+instead of failing, so if you change one, confirm the suite still collects the expected
+number of tests.
+
+When adding a file, put it in the same commit as the code it references. Two ordering
+defects were fixed by that rule: the end-to-end harness imported `src/main` before it
+existed, and the Jest config named setup files that had not landed yet.
+
 ## Things that will bite you
 
 - **`SQIDS_ALPHABET` is effectively immutable.** The short code is the Sqids encoding of
