@@ -39,3 +39,70 @@ describe('rate limiting', () => {
     await request(server).get(`/${firstCode}`).expect(301);
   });
 });
+
+// Every named throttler applies to every route unless the route skips it, so each path must
+// be checked against the other path's limit, not just its own.
+describe('throttler isolation', () => {
+  let ctx: TestApp;
+
+  afterEach(async () => {
+    await ctx.close();
+  });
+
+  it('does not count redirects or previews against the create limit', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '2',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '1000',
+    });
+    const server = ctx.app.getHttpServer();
+    const { body } = await request(server).post('/api/links').send({ url: 'https://example.com/' });
+
+    for (let i = 0; i < 5; i++) {
+      await request(server).get(`/${body.code}`).expect(301);
+      await request(server).get(`/api/links/${body.code}`).expect(200);
+    }
+  });
+
+  it('enforces the redirect limit with a one-minute Retry-After', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '1000',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '3',
+    });
+    const server = ctx.app.getHttpServer();
+    const { body } = await request(server).post('/api/links').send({ url: 'https://example.com/' });
+
+    for (let i = 0; i < 3; i++) await request(server).get(`/${body.code}`).expect(301);
+    const limited = await request(server).get(`/${body.code}`).expect(429);
+    expect(limited.body.error.code).toBe('RATE_LIMITED');
+    expect(Number(limited.headers['retry-after'])).toBe(60);
+
+    // Preview is on the redirect tier too, so it cannot be used to bypass enumeration limits.
+    for (let i = 0; i < 3; i++) await request(server).get(`/api/links/${body.code}`).expect(200);
+    await request(server).get(`/api/links/${body.code}`).expect(429);
+  });
+
+  it('leaves the app shell unthrottled', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '1',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '1',
+    });
+    const server = ctx.app.getHttpServer();
+
+    for (let i = 0; i < 3; i++) {
+      await request(server).get('/').expect(200);
+      await request(server).get('/p/anything').expect(200);
+    }
+  });
+
+  it('does not count creations against the redirect limit', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '1000',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '3',
+    });
+    const server = ctx.app.getHttpServer();
+
+    for (let i = 0; i < 5; i++) {
+      await request(server).post('/api/links').send({ url: 'https://example.com/' }).expect(201);
+    }
+  });
+});
