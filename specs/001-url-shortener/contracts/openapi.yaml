@@ -1,0 +1,197 @@
+openapi: 3.1.0
+info:
+  title: Shotrn URL Shortener
+  version: 1.0.0
+  description: >
+    HTTP contract for the URL shortener. JSON endpoints live under /api; the
+    redirect and page routes live at the root. All error responses share the
+    ErrorEnvelope shape and never expose internal details.
+servers:
+  - url: "{baseUrl}"
+    variables:
+      baseUrl:
+        default: http://localhost:3000
+
+paths:
+  /api/links:
+    post:
+      operationId: createLink
+      summary: Shorten a URL (US1, US3)
+      description: >
+        Creates a new short link. Never deduplicates (FR-018). Rate limited to
+        60 requests per hour per client IP (FR-015).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLinkRequest"
+            examples:
+              permanent:
+                value: { url: "https://example.com/very/long/path?x=1#frag" }
+              temporary:
+                value: { url: "https://example.com/offer", expiry: "1d" }
+      responses:
+        "201":
+          description: Link created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkResponse"
+        "400":
+          description: >
+            Invalid input. `code` is INVALID_URL for FR-002/003/004 failures
+            (message states the reason and, for length, the 2048 limit) or
+            VALIDATION_ERROR for malformed body / unknown expiry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/links/{code}:
+    get:
+      operationId: getLink
+      summary: Preview a short link without redirecting (US4)
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200":
+          description: Link found (active or expired — see `status`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410":
+          description: Link expired. Body still returned so the preview page can render it.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /{code}:
+    get:
+      operationId: redirect
+      summary: Follow a short link (US2, US3)
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "301":
+          description: Permanent link. `Location` is the original URL verbatim.
+          headers:
+            Location: { schema: { type: string, format: uri } }
+            Cache-Control: { schema: { type: string, const: "public, max-age=86400" } }
+        "302":
+          description: Temporary (expiring) link. `Location` is the original URL verbatim.
+          headers:
+            Location: { schema: { type: string, format: uri } }
+            Cache-Control: { schema: { type: string, const: "no-store" } }
+        "404":
+          description: Unknown code. HTML "link not found" page; no redirect.
+          content:
+            text/html: {}
+        "410":
+          description: Expired code. HTML "link expired" page; no redirect.
+          content:
+            text/html: {}
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /:
+    get:
+      operationId: home
+      summary: Shorten form (SPA)
+      responses:
+        "200": { description: SPA HTML, content: { text/html: {} } }
+
+  /p/{code}:
+    get:
+      operationId: previewPage
+      summary: Preview page (SPA); fetches /api/links/{code}
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: SPA HTML, content: { text/html: {} } }
+
+components:
+  parameters:
+    Code:
+      name: code
+      in: path
+      required: true
+      description: Case-sensitive short code, 6–10 alphanumeric characters.
+      schema:
+        type: string
+        pattern: "^[0-9A-Za-z]{6,10}$"
+
+  responses:
+    NotFound:
+      description: Unknown or non-canonical code
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+          example: { error: { code: NOT_FOUND, message: "Link not found" } }
+    RateLimited:
+      description: Too many requests from this client
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+          example: { error: { code: RATE_LIMITED, message: "Too many requests, slow down" } }
+
+  schemas:
+    ExpiryOption:
+      type: string
+      enum: [1h, 1d, 7d, 30d, never]
+      default: never
+
+    CreateLinkRequest:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: http(s) URL. Trimmed server-side; stored and redirected verbatim.
+        expiry:
+          $ref: "#/components/schemas/ExpiryOption"
+
+    LinkResponse:
+      type: object
+      required: [code, shortUrl, previewUrl, originalUrl, createdAt, expiresAt, status]
+      properties:
+        code: { type: string, example: "k9Xz2Q" }
+        shortUrl: { type: string, format: uri, example: "https://sho.rt/k9Xz2Q" }
+        previewUrl: { type: string, format: uri, example: "https://sho.rt/p/k9Xz2Q" }
+        originalUrl: { type: string, format: uri }
+        createdAt: { type: string, format: date-time }
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+          description: null for permanent links
+        status:
+          type: string
+          enum: [active, expired]
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [INVALID_URL, VALIDATION_ERROR, NOT_FOUND, RATE_LIMITED, INTERNAL]
+            message:
+              type: string
+              description: Safe, user-readable. Never contains stack traces or internal paths.
