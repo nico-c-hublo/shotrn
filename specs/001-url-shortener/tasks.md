@@ -37,7 +37,7 @@ Web app, npm workspaces monorepo (per [plan.md](plan.md#project-structure)):
 **Purpose**: Repository, workspaces, tooling, and quality gate
 
 - [X] T001 Create npm workspaces root at `package.json` with workspaces `["backend", "frontend"]` and scripts `check` (tsc --noEmit + eslint + prettier --check across both), `test`, `dev`, `build`, `start`
-- [X] T002 [P] Create `backend/package.json` with NestJS 11 (Express adapter), `sqids`, `drizzle-orm`, `drizzle-kit`, `pg`, `@nestjs/throttler`, `@nestjs/serve-static`, `helmet`, `class-validator`, `class-transformer`; dev deps Jest, Supertest, `@testcontainers/postgresql`, ts-jest; scripts include `db:migrate` (drizzle-kit migrate) as used by [quickstart.md](quickstart.md#setup)
+- [X] T002 [P] Create `backend/package.json` with NestJS 11 (Express adapter), `sqids`, `drizzle-orm`, `drizzle-kit`, `pg`, `@nestjs/throttler`, `helmet`, `class-validator`, `class-transformer`; dev deps Jest, Supertest, `@testcontainers/postgresql`, ts-jest; scripts include `db:migrate` (drizzle-kit migrate) as used by [quickstart.md](quickstart.md#setup)
 - [X] T003 [P] Create `frontend/package.json` with React 19, Vite 6, `@vitejs/plugin-react`; dev deps Vitest, `@testing-library/react`, `@testing-library/user-event`, jsdom
 - [X] T004 [P] Configure TypeScript with `strict: true` in `backend/tsconfig.json` and `frontend/tsconfig.json` (constitution II: no implicit any, no unchecked casts)
 - [X] T005 [P] Configure ESLint (typescript-eslint) and Prettier at repo root in `eslint.config.js` and `.prettierrc`, covering both workspaces
@@ -67,7 +67,7 @@ Web app, npm workspaces monorepo (per [plan.md](plan.md#project-structure)):
 - [X] T020 [P] Implement domain error classes and stable codes in `backend/src/common/errors.ts`: `INVALID_URL`, `VALIDATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED`, `INTERNAL` (matching [contracts/openapi.yaml](contracts/openapi.yaml) `ErrorEnvelope`). There is deliberately no `GONE` code: an expired link is a resource state, not an error — 410 responses carry a `LinkResponse` with `status: 'expired'` (JSON) or the expired HTML page, never an error envelope.
 - [X] T020a [P] Implement `backend/src/links/expiry.ts`: the `ExpiryOption` type (`'1h' | '1d' | '7d' | '30d' | 'never'`) and `toExpiresAt(option, now)` returning `null` for `'never'` or `now + {1h, 24h, 168h, 720h}` from the server clock. Lives in Phase 2 because US1's `CreateLinkDto` (T033) references `ExpiryOption`.
 - [X] T021 Implement the global exception filter in `backend/src/common/http-exception.filter.ts` mapping every error to `{ error: { code, message } }`, logging internals server-side only; no stack traces, SQL, or paths in responses (FR-017)
-- [X] T022 Bootstrap the application in `backend/src/main.ts`: `helmet()`, `trust proxy`, global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })`, the exception filter, and `@nestjs/serve-static` for `frontend/dist` serving `/assets/**` plus the SPA `index.html` at `/` and `/p/:code`; exclusions must leave every other single-segment path free for the redirect catch-all
+- [X] T022 Bootstrap the application in `backend/src/main.ts`: `helmet()`, `trust proxy`, global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })`, the exception filter, and `app.useStaticAssets(frontend/dist/assets, { prefix: '/assets' })`; every other single-segment path must stay free for the redirect catch-all
 - [X] T023 Wire `backend/src/app.module.ts` with the config, db, and links modules plus `ThrottlerModule` configured from env
 - [X] T024 [P] Create the Testcontainers test harness in `backend/test/setup/` : starts PostgreSQL 16, runs `backend/src/db/migrations/`, exposes a per-suite `DATABASE_URL`, tears down after; no manually provisioned state (constitution IV)
 - [X] T025 [P] Scaffold the frontend shell: `frontend/index.html`, `frontend/src/main.tsx`, `frontend/src/App.tsx` selecting the screen from `window.location.pathname` (`/` → shorten, `/p/:code` → preview; no router), and `frontend/src/styles.css`
@@ -191,7 +191,7 @@ codes return 404/410 matching the redirect path.
 - [X] T068 [US4] Apply the redirect-tier throttle to `GET /api/links/:code` in `backend/src/links/links.controller.ts` so preview cannot be used to bypass enumeration limits
 - [X] T069 [P] [US4] Implement `frontend/src/components/PreviewCard.tsx` showing the destination URL as text, creation date, expiry (if any), and an explicit "continue" link the visitor must click
 - [X] T070 [US4] Route `/p/:code` in `frontend/src/App.tsx` to `PreviewCard`, fetching via `getLink` and rendering the not-found and expired states from the response status
-- [X] T071 [US4] Verify `GET /p/:code` serves the SPA `index.html` via the serve-static configuration from T022 (single owner; no `pages.controller.ts`) and that the route is matched before the `/:code` catch-all in `backend/src/main.ts`
+- [X] T071 [US4] Serve the SPA `index.html` for `GET /p/:code` from `backend/src/links/pages.controller.ts`, registered before the `/:code` catch-all. Static middleware cannot serve an index file for a parameterised path, so the controller owns `/` and `/p/:code` while `useStaticAssets` owns `/assets/**`
 
 **Checkpoint**: All four user stories are independently functional
 

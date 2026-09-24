@@ -116,7 +116,9 @@ backend/
 │   ├── links/
 │   │   ├── links.module.ts
 │   │   ├── links.controller.ts     # POST /api/links, GET /api/links/:code
-│   │   ├── redirect.controller.ts  # GET /:code
+│   │   ├── redirect.controller.ts  # GET /:code (catch-all, registered last)
+│   │   ├── pages.controller.ts     # GET /, GET /p/:code -> SPA index.html
+│   │   ├── spa.ts                  # reads the built index.html, sends it with a status
 │   │   ├── links.service.ts        # create / resolve; expiry logic
 │   │   ├── links.repository.ts     # insert / findById (Drizzle)
 │   │   ├── short-code.ts           # Sqids wrapper: encode(id), decode(code) w/ canonical check
@@ -167,8 +169,11 @@ frontend/
 **Structure Decision**: Web application layout — `backend/` (NestJS) and `frontend/`
 (Vite React) as two npm workspaces under one root so `npm run check` and `npm test`
 gate both in a single command (constitution §Development Workflow). In production the
-backend serves `frontend/dist`: hashed bundles under `/assets/**` and `index.html` at
-`/` and `/p/:code`. Every other single-segment path is a redirect candidate;
+backend serves `frontend/dist`: Express's `useStaticAssets` serves the hashed bundles
+under `/assets/**`, and `PagesController` sends `index.html` for `/` and `/p/:code`.
+Static middleware cannot serve an index file for a parameterised path, so a controller
+owns those two routes; `@nestjs/serve-static` would add a dependency without changing
+that. Every other single-segment path is a redirect candidate;
 `assets` is in the Sqids blocklist (research §2) so no code can shadow it. No client-side router: two screens are selected from
 `location.pathname` (simplicity — a router dependency for two routes is unjustified).
 

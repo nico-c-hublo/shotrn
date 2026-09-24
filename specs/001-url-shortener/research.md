@@ -156,7 +156,7 @@ sits next to internal services.
 | `class-validator` + `class-transformer` | Nest-idiomatic DTO validation with `whitelist` stripping | Zod pipe is comparable; class-validator chosen for zero custom pipe code and Nest docs alignment |
 | `@nestjs/throttler` | FR-015 rate limiting | Hand-rolled token bucket is ~the same size but untested |
 | `helmet` | Constitution: baseline security headers | Setting 5 headers by hand is fine too; helmet is the audited default |
-| `@nestjs/serve-static` | Serve SPA in prod from same origin | Separate static host complicates same-origin `/:code` routing |
+| *(none for static files)* | Express's built-in `useStaticAssets` serves the hashed bundles; `@nestjs/serve-static` was dropped as an unused dependency | A separate static host would complicate same-origin `/:code` routing, but the Nest wrapper adds nothing over the adapter method already available |
 | React 19 + Vite 6 | User-mandated frontend | — |
 | Jest + Supertest | Nest default test stack; contract tests over HTTP | Vitest on backend requires SWC decorator config — not worth two configs |
 | Vitest + Testing Library | Vite-native frontend tests | — |
