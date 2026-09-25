@@ -65,3 +65,19 @@ one address. It now holds such a lookup until the in-flight ones settle
 (research.md §6), and a contract test sends 50 concurrent hits from one client to keep
 it that way.
 
+## Re-run with 13-character codes and no unknown-code budget (T105)
+
+**Date**: 2026-09-25 · Same harness, machine, overrides and throwaway database as above.
+The build under test has 13-character codes and no unknown-code guard (constitution
+1.2.0); the create and redirect limits are raised as before.
+
+| Run | Redirects/s | p50 | p99 | Failed redirects | Creates/s | Failed creates |
+|---|---|---|---|---|---|---|
+| 1 | 6,478 | 6 ms | 42 ms | 0 of 2,000 | 3,897 | 0 of 200 |
+| 2 | 6,700 | 6 ms | 23 ms | 0 of 2,000 | 4,689 | 0 of 200 |
+| 3 | 6,816 | 7 ms | 18 ms | 0 of 2,000 | 4,399 | 0 of 200 |
+
+All SC-002/SC-003 targets pass, in line with the previous run. Two more characters in
+the key and one guard fewer on the path make no measurable difference next to the
+database round-trip.
+

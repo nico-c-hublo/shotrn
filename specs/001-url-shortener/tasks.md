@@ -270,7 +270,7 @@ characters give more guessing resistance with no lockout ([research.md §2, §6]
 - [X] T102 Amend the constitution to 1.2.0 (≥ 77 bits; every lookup route rate limited per client and /64; risk statement), the spec (FR-006, FR-020, SC-008), and research §1, §2, §6, the plan, data model, contract and quickstart
 - [X] T103 Lengthen codes to 13 characters: `CODE_LENGTH` in `backend/src/links/short-code.ts`, the `code_format` CHECK in `backend/src/db/schema.ts` and new migration `0003_code_length_13.sql`, the route patterns in `frontend/src/App.tsx` and `frontend/vite.config.ts`; update every test fixture and README/CLAUDE.md
 - [X] T104 Remove the unknown-code budget and everything that existed only for it: `unknown-code-limiter.ts`, `unknown-code.guard.ts` and their tests, `RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES`, `common/client-key.ts`, and the served-outcome tags (`spa.ts`, `frontend/src/served-outcome.ts`). Add a contract test that a refused lookup answers the same for known and unknown codes (FR-020)
-- [ ] T105 Re-run the load check against the result and record it in [load-results.md](load-results.md)
+- [X] T105 Re-run the load check against the result and record it in [load-results.md](load-results.md)
 
 **Checkpoint**: Codes are unguessable, guessing is bounded per client, and no response
 reveals a destination to someone who does not hold its code
