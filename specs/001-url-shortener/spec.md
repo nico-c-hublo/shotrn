@@ -45,6 +45,11 @@ a shareable short link.
    application shows a validation message and does not make a request.
 5. **Given** the visitor submits a URL longer than the maximum accepted length,
    **When** they submit, **Then** the application refuses it and states the limit.
+6. **Given** a short link has just been issued, **When** the result view is shown,
+   **Then** a QR code encoding exactly that short link appears directly below it, so
+   another person can open the link by pointing a phone camera at the screen, and the
+   result view fits the screen without horizontal scrolling on any display from a
+   320-pixel-wide phone upwards.
 
 ---
 
@@ -219,6 +224,11 @@ link and verifying the full original URL is displayed without any redirect.
   with a clear message, without affecting other visitors. Visitors on IPv6 are counted
   per /64 network, so rotating addresses within one allocation does not escape the
   limit. The response to a refused lookup MUST NOT depend on whether the code exists.
+- **FR-021**: The result view MUST display a QR code that encodes exactly the full
+  short link. The code MUST be dark on a light background whatever the visitor's colour
+  scheme, keep the four-module quiet zone the QR standard requires, carry a text
+  alternative naming the link it encodes, and render without horizontal scrolling at
+  every viewport width from 320 CSS pixels upwards.
 
 ### Key Entities
 
@@ -291,3 +301,6 @@ link and verifying the full original URL is displayed without any redirect.
 - **Language**: The interface is in English only for this version.
 - **Temporary links** (User Story 3) were included from the follow-up input
   "A shorten URL can be temporary" in the same session.
+- **QR code** (FR-021) was added from the follow-up input "add a QR code rendered just
+  behind the short url when it's created, so the user can share directly". Only the
+  result view shows it: the preview is for checking a link, not for passing it on.
