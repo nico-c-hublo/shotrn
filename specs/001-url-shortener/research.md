@@ -248,6 +248,7 @@ sits next to internal services.
 | React 19 + Vite 8 (as Vite+ core) | User-mandated frontend | — |
 | Vitest + Supertest (backend) | One test runner for both workspaces, and the one Vite+ runs; contract tests over HTTP | Jest was the original choice (the Nest default) because Vitest on Vite 6 needed SWC to emit decorator metadata. Vite 8 transforms with Oxc, which emits it, so that cost is gone (Phase 10) |
 | Vitest + Testing Library | Vite-native frontend tests | — |
+| `qrcode.react` | FR-021 QR code; zero runtime dependencies, renders React SVG elements | See §12: a hand-rolled encoder, `qrcode`, `uqr`, and a server-rendered image were each rejected |
 | `@testcontainers/postgresql` | Constitution IV: one command, no manually provisioned state | `pg-mem` is not Postgres-faithful (identity, TIMESTAMPTZ); docker-compose-managed test DB is "manually provisioned state" |
 | Vite+ (`vite-plus`) | One toolchain for build, dev server, tests, lint, format and type check: Vite 8 core, Vitest 5, oxlint with type-aware rules (tsgolint, TypeScript 7) and oxfmt, configured from one root `vite.config.ts`. Replaced ESLint, typescript-eslint, @eslint/js, Prettier, Jest and ts-jest (Phase 10). The lint rules are the effective ESLint rules, plus oxlint's correctness category, checked with planted violations | Keeping ESLint + Prettier + Jest worked, but meant three configurations and three upgrade cadences for one repository. **Risk, accepted**: this is `1.0.0-rc.0`. It aliases `vite` to its own core (`@voidzero-dev/vite-plus-core`) and pins exact versions of oxlint, oxfmt (0.x) and tsgolint (a TypeScript 7 preview), so upgrades arrive together on VoidZero's schedule. The lockfile, the CI gate and Dependabot catch a bad release; falling back means restoring the Phase 9 configuration from git |
 | `eslint-plugin-react-hooks` (inside oxlint) | Rules of hooks and exhaustive effect dependencies: violations compile fine and fail only at run time. Loaded through oxlint's `jsPlugins`, because oxlint's built-in rules-of-hooks and exhaustive-deps missed planted violations | Review alone misses a missing effect dependency; the React team's own plugin is the reference implementation |
@@ -274,3 +275,63 @@ storage matches the edge case on wrong client clocks.
 **Decision**: No purge job in v1. Expired rows stay so `410` can be served (spec
 assumption ≥ 30 days). A purge (`DELETE WHERE expires_at < now() - interval '30 days'`)
 is a one-line operational cron to add when volume warrants.
+
+## 12. QR code for the short link
+
+**Decision**: `ResultCard` renders `QRCodeSVG` from `qrcode.react` for `link.shortUrl`,
+error correction level `M`, a four-module margin, and fixed `#000`/`#fff` colours. CSS
+sizes the SVG: full card width capped at 14rem on a phone, a fixed column beside the
+link from 36rem upwards.
+
+**Rationale**:
+- SVG with a `viewBox` scales to any CSS size and stays sharp at every device pixel
+  ratio. A canvas would have to be resized for each ratio and blurs when CSS scales it.
+- The colours ignore dark mode on purpose: many scanners cannot read a light-on-dark
+  code, and the white margin is the quiet zone the standard requires.
+- Level `M` recovers 15% damage (glare, moiré when photographing a screen). A short
+  URL is ~30 characters, so `M` costs at most one version step over `L`.
+- The client already holds the short link, so encoding it there adds no endpoint, no
+  request, and no rate-limit surface. The CSP needs no change: the SVG is inline DOM,
+  not a `data:` image.
+
+**Alternatives considered**:
+- Hand-rolled encoder: version selection, Reed–Solomon, and masking are several
+  hundred lines to own and test for no gain.
+- `qrcode`: pulls `yargs`, `pngjs`, and `dijkstrajs` in for its CLI and PNG output.
+- `uqr`: pre-1.0, and returns an SVG string (needs `dangerouslySetInnerHTML`) or a raw
+  matrix (needs our own renderer).
+- A server endpoint returning an image: another route to validate and rate-limit, for
+  data the browser already has.
+
+## 13. Colour scheme toggle
+
+**Decision**: Each colour token is one `light-dark()` pair on `:root`, and the scheme is
+picked by the `color-scheme` property: `light dark` (the device decides) by default,
+pinned by `data-theme="light"` or `"dark"` on `<html>`. The choice is kept in
+`localStorage` under `theme`. `main.tsx` applies it before React renders; `ThemeToggle`
+changes it and highlights the scheme in effect, following the device while nothing is
+stored.
+
+**Rationale**:
+- `light-dark()` states each pair once. A media query plus a `[data-theme]` override
+  would need every dark token written twice, and the copies would drift.
+- `color-scheme` also switches native controls (the expiry `<select>`, scrollbars), so
+  the toggle changes the whole page, not only our colours.
+- The CSP allows no inline script (`script-src 'self'`), so the usual pre-paint snippet
+  in `index.html` cannot run. Applying the choice in the entry module is the earliest
+  point the CSP permits; a visitor whose pick differs from the device can see the
+  device's scheme for one frame on a slow load.
+- Storage can throw (blocked site data, some private modes). Every access is guarded,
+  and a failure leaves the page following the device, which is where it started.
+- The switch cross-fades through the View Transitions API: one snapshot of the whole
+  page, native controls and the QR code included, and only when the visitor picks. A
+  CSS `transition` on every element would also animate the first paint, slow every hover
+  effect, and cannot reach native controls. Browsers without the API, and visitors who
+  ask for reduced motion, get the instant switch.
+- No dependency: two buttons and a few lines of storage handling.
+
+**Alternatives considered**:
+- A three-way light/dark/system control: the request was a two-icon toggle, and until
+  the first pick the page already follows the device.
+- Hashing an inline script into the CSP: every edit to the snippet changes the hash,
+  and the backend would have to know the frontend's source.

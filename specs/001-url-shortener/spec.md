@@ -45,6 +45,11 @@ a shareable short link.
    application shows a validation message and does not make a request.
 5. **Given** the visitor submits a URL longer than the maximum accepted length,
    **When** they submit, **Then** the application refuses it and states the limit.
+6. **Given** a short link has just been issued, **When** the result view is shown,
+   **Then** a QR code encoding exactly that short link appears directly below it, so
+   another person can open the link by pointing a phone camera at the screen, and the
+   result view fits the screen without horizontal scrolling on any display from a
+   320-pixel-wide phone upwards.
 
 ---
 
@@ -189,7 +194,9 @@ link and verifying the full original URL is displayed without any redirect.
 - **FR-009**: Opening an unissued short code MUST display a "link not found" page and
   MUST NOT redirect anywhere.
 - **FR-010**: The result view after shortening MUST display the full short link and
-  offer a one-action copy to clipboard.
+  offer a one-action copy to clipboard. It MUST bring the result into view and move
+  focus to the copy action, so a visitor on a small screen, or with the on-screen
+  keyboard open, sees the result without scrolling for it.
 - **FR-011**: At creation time a visitor MUST be able to choose an expiry duration from
   a fixed set of options (at minimum: 1 hour, 1 day, 7 days, 30 days, never). When no
   option is chosen the link MUST be permanent.
@@ -219,6 +226,21 @@ link and verifying the full original URL is displayed without any redirect.
   with a clear message, without affecting other visitors. Visitors on IPv6 are counted
   per /64 network, so rotating addresses within one allocation does not escape the
   limit. The response to a refused lookup MUST NOT depend on whether the code exists.
+- **FR-021**: The result view MUST display a QR code that encodes exactly the full
+  short link. The code MUST be dark on a light background whatever the visitor's colour
+  scheme, keep the four-module quiet zone the QR standard requires, carry a text
+  alternative naming the link it encodes, and render without horizontal scrolling at
+  every viewport width from 320 CSS pixels upwards.
+- **FR-022**: Text and the labels of controls MUST have a contrast ratio of at least
+  4.5:1 against their background (WCAG 2.1 AA) in both the light and the dark colour
+  scheme.
+- **FR-023**: Every page MUST offer a light/dark colour scheme toggle in its top right
+  corner, drawn as a sun and a moon with the active scheme in the accent colour. Until
+  the visitor picks one, the page follows the device's colour scheme. A pick MUST apply
+  at once with a short cross-fade (none when the visitor asks for reduced motion),
+  survive a reload, and fall back silently to the device's scheme when the
+  browser cannot store it. Each icon MUST have an accessible name and expose whether
+  it is the active scheme.
 
 ### Key Entities
 
@@ -291,3 +313,13 @@ link and verifying the full original URL is displayed without any redirect.
 - **Language**: The interface is in English only for this version.
 - **Temporary links** (User Story 3) were included from the follow-up input
   "A shorten URL can be temporary" in the same session.
+- **QR code** (FR-021) was added from the follow-up input "add a QR code rendered just
+  behind the short url when it's created, so the user can share directly". Only the
+  result view shows it: the preview is for checking a link, not for passing it on.
+- **Mobile audit follow-ups** (FR-010's scroll and focus, FR-022) came from checking the
+  interface at 320–1440px: on a 320×568 phone or a landscape phone the result appeared
+  below the fold, and white button text in dark mode measured 2.28:1.
+- **Colour scheme toggle** (FR-023) was added from the follow-up input "add a small
+  light/dark mode toggle on the top right of the page … simple sun/moon icons with
+  accent color on the active mode". The choice is stored in the browser only; there
+  are no accounts to attach it to.

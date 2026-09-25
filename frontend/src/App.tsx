@@ -4,6 +4,7 @@ import { PreviewCard } from './components/PreviewCard';
 import { ResultCard } from './components/ResultCard';
 import { ShortenForm } from './components/ShortenForm';
 import { StatusScreen } from './components/StatusScreen';
+import { ThemeToggle } from './components/ThemeToggle';
 
 /**
  * Two screens plus a status screen, selected from the path. A router dependency would buy
@@ -69,9 +70,12 @@ export function App({ pathname = window.location.pathname }: { pathname?: string
 
   return (
     <main>
-      <h1>
-        <a href="/">Shotrn</a>
-      </h1>
+      <header>
+        <h1>
+          <a href="/">Shotrn</a>
+        </h1>
+        <ThemeToggle />
+      </header>
       {route.kind === 'home' && <Home />}
       {route.kind === 'preview' && <CodeScreen code={route.code} preview />}
       {route.kind === 'status' && <CodeScreen code={route.code} preview={false} />}

@@ -316,6 +316,64 @@ when it is adopted (T120).
 
 ---
 
+## Phase 11: QR code for the short link (FR-021)
+
+**Goal**: The result view shows a QR code for the new short link, so it can be shared by
+pointing a phone camera at the screen.
+
+**Independent Test**: Shorten a link at 320px, 390px, landscape phone, 768px, and 1440px
+in light and dark mode; the page never scrolls horizontally and the QR code decodes to
+exactly the short link.
+
+### Tests for FR-021 ⚠️
+
+- [X] T122 [US1] Component tests in `frontend/tests/ResultCard.test.tsx`: the QR code is an image named after the short URL, its `viewBox` includes a four-module quiet zone, and it is drawn black on white (FR-021)
+
+### Implementation for FR-021
+
+- [X] T123 [US1] Add `qrcode.react` to the frontend workspace and render `QRCodeSVG` for `link.shortUrl` below the short link in `frontend/src/components/ResultCard.tsx`, level `M`, margin 4, fixed black on white (research.md §12)
+- [X] T124 [US1] Style the QR code in `frontend/src/styles.css` mobile first: full card width capped at 14rem below 36rem, beside the link from 36rem upwards, never wider than its container
+- [X] T125 [US1] Run the FR-021 manual check in [quickstart.md](quickstart.md#us1--shorten-a-link) and confirm each viewport decodes the QR code to the short link
+
+---
+
+## Phase 12: Mobile audit follow-ups (FR-010, FR-022)
+
+**Goal**: Fix what the viewport audit found: on a 320×568 phone or a landscape phone a
+new result appeared below the fold, and white button text in dark mode measured 2.28:1.
+
+**Independent Test**: Shorten a link on a 320×568 viewport by pressing Enter in the URL
+field: the result card scrolls into view and the copy button has focus. In dark mode
+the button labels measure at least 4.5:1.
+
+- [X] T126 [P] Contrast test in `frontend/tests/contrast.test.ts`: reads the colour tokens from `frontend/src/styles.css` for each scheme and asserts button labels (`--on-accent` on `--accent`) and links (`--accent` on `--bg`) reach 4.5:1; widen the Vitest `include` glob to `*.test.{ts,tsx}` and confirm the collected count grows by exactly the new tests (FR-022)
+- [X] T127 Add an `--on-accent` token in `frontend/src/styles.css`, white in light mode and `--bg` in dark mode, and use it for button text (FR-022)
+- [X] T128 [P] Component tests in `frontend/tests/ResultCard.test.tsx`: a new link scrolls its card into view, smoothly unless reduced motion is asked for, and focuses the copy button; a second link scrolls again (FR-010)
+- [X] T129 On each new link, scroll the result card into view and move focus to the copy button in `frontend/src/components/ResultCard.tsx` (FR-010)
+- [X] T130 Show "Copied!" only for the link that was copied: after copying one link and shortening another, the button kept saying "Copied!" in `frontend/src/components/ResultCard.tsx`; tested in `frontend/tests/ResultCard.test.tsx` (FR-010)
+
+---
+
+## Phase 13: Colour scheme toggle (FR-023)
+
+**Goal**: A sun / moon toggle in the top right corner of every page switches between the
+light and dark colour schemes, and the choice survives a reload.
+
+**Independent Test**: With the device in light mode, open the home page: the sun is in
+the accent colour. Pick the moon: the page turns dark at once, the moon takes the
+accent, and a reload keeps it dark. At 320px the toggle sits beside the title without
+horizontal scrolling.
+
+- [X] T131 [P] Contrast test in `frontend/tests/contrast.test.ts`: read each token as a `light-dark()` pair, keep the existing assertions, and assert the muted colour the inactive icon uses reaches 4.5:1 against the background in both schemes (FR-022, FR-023)
+- [X] T132 Collapse the colour tokens in `frontend/src/styles.css` into `light-dark()` pairs, and pin `color-scheme` from `data-theme` on `<html>` (research.md §13)
+- [X] T133 [P] Component tests in `frontend/tests/ThemeToggle.test.tsx`: the device's scheme is active until a pick; a pick sets `data-theme`, is stored, and moves `aria-pressed`; a stored pick wins over the device; a device change is followed only while nothing is stored; a storage failure still switches the page (FR-023)
+- [X] T134 Add `frontend/src/theme.ts` (read, store and apply the choice, every storage access guarded) and apply the stored choice in `frontend/src/main.tsx` before rendering (FR-023)
+- [X] T135 Add `frontend/src/components/ThemeToggle.tsx`, render it beside the title in `frontend/src/App.tsx`, and style it in `frontend/src/styles.css`: icon buttons, muted when inactive, accent when active (FR-023)
+- [X] T136 Component tests in `frontend/tests/ThemeToggle.test.tsx`: a pick runs through a view transition and the highlight moves inside it; with reduced motion, or without the API, the page switches without one (FR-023)
+- [X] T137 Cross-fade a pick with `document.startViewTransition` in `frontend/src/components/ThemeToggle.tsx`, flushing the highlight inside the transition, and set the fade's duration in `frontend/src/styles.css` (research.md §13)
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -329,6 +387,9 @@ when it is adopted (T120).
 - **Unguessable codes (Phase 8)**: Depends on Phases 1–7. T082–T087 land together (the
   schema, repository and service change in step); T088–T089 and T090–T094 are
   independent of each other and follow T087
+- **QR code (Phase 11)**: Depends on US1; touches only `ResultCard.tsx`, its test, and `styles.css`
+- **Mobile audit follow-ups (Phase 12)**: Depend on Phase 11. T126–T127 and T128–T129 are independent of each other
+- **Colour scheme toggle (Phase 13)**: Depends on Phase 12's contrast test. T131–T132 and T133–T135 are independent of each other; T136–T137 follow T135
 
 ### User Story Dependencies
 

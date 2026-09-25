@@ -1,22 +1,31 @@
 :root {
-  --bg: #fbfbfd;
-  --fg: #16161a;
-  --muted: #5c5c66;
-  --accent: #2f5bea;
-  --border: #dcdce4;
-  --error: #b4232b;
+  /* Each token is light-dark(light, dark); color-scheme below picks the half, which lets
+     the toggle override the device without restating the dark palette (research.md §13). */
+  --bg: light-dark(#fbfbfd, #16161a);
+  --fg: light-dark(#16161a, #f2f2f5);
+  --muted: light-dark(#5c5c66, #a0a0ad);
+  --accent: light-dark(#2f5bea, #8fa8ff);
+  /* Text drawn on the accent. Dark mode lightens the accent for links, which leaves
+     white labels at 2.28:1, so labels there switch to the dark background (7.92:1). */
+  --on-accent: light-dark(#ffffff, #16161a);
+  --border: light-dark(#dcdce4, #32323c);
+  --error: light-dark(#b4232b, #ff8f92);
   color-scheme: light dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16161a;
-    --fg: #f2f2f5;
-    --muted: #a0a0ad;
-    --accent: #8fa8ff;
-    --border: #32323c;
-    --error: #ff8f92;
-  }
+/* A pick from the toggle (FR-023); without one the device decides. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* The cross-fade when the visitor picks a scheme; the browser default is a touch abrupt. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.35s;
 }
 
 * {
@@ -40,9 +49,45 @@ main {
   padding: 3rem 1rem;
 }
 
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 h1 a {
   color: inherit;
   text-decoration: none;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+/* Icon buttons, so none of the filled accent style of the form's buttons. */
+.theme-toggle button {
+  display: grid;
+  margin: 0;
+  padding: 0.4rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.theme-toggle button:hover {
+  color: var(--fg);
+}
+
+.theme-toggle button[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.theme-toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 form {
@@ -71,7 +116,7 @@ button {
   cursor: pointer;
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   justify-self: start;
   margin-top: 0.5rem;
 }
@@ -94,6 +139,51 @@ button[disabled] {
   font-size: 1.05rem;
   word-break: break-all;
   margin: 0 0 0.75rem;
+}
+
+/* Mobile first: link, QR code, then details in one column. From 36rem the QR code moves
+   beside the link so the whole result stays above the fold on landscape phones. */
+.result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'url' 'qr' 'details';
+}
+
+.result .short-url {
+  grid-area: url;
+}
+
+.result-details {
+  grid-area: details;
+}
+
+/* The SVG's width/height attributes are only a fallback: the viewBox lets CSS size it
+   to the container while every module stays square. */
+.qr {
+  grid-area: qr;
+  justify-self: center;
+  width: min(100%, 14rem);
+  height: auto;
+  aspect-ratio: 1;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+}
+
+@media (min-width: 36rem) {
+  .result {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'url qr'
+      'details qr';
+    grid-template-rows: auto 1fr;
+    column-gap: 1.5rem;
+  }
+
+  .qr {
+    align-self: start;
+    width: 10rem;
+    margin-bottom: 0;
+  }
 }
 
 .expiry,

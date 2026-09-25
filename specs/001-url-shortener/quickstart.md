@@ -71,6 +71,16 @@ curl -s -X POST $B/api/links -H 'content-type: application/json' -d "{\"url\":\"
 # Same URL twice → two different codes (FR-018)
 ```
 
+In the browser, shorten a link with the viewport at 320, 390, 768, and 1440 pixels wide
+and in a phone's landscape orientation, in both light and dark mode. At each size the
+page must not scroll horizontally, and a phone camera pointed at the QR code must offer
+to open exactly the short link (FR-021).
+
+Pick the scheme the device is not using with the sun / moon toggle in the top right
+corner: the page switches at once, including the expiry drop-down, the picked icon
+takes the accent colour, and a reload keeps the pick. The QR code stays black on white
+(FR-021, FR-023).
+
 ### US2 — Follow a link
 
 ```bash
@@ -139,7 +149,7 @@ from the plan's structure.
 | FR-007 | `src/links/short-code.spec.ts` + `test/contract/create-link.e2e-spec.ts` | codes come from `crypto.randomInt`, not from any counter; no configuration value reproduces them |
 | FR-008 | `test/contract/redirect.e2e-spec.ts` | Location equals original incl. query and fragment; IDN and percent-encoded paths round-trip |
 | FR-009 | same | unknown code → 404, no Location; malformed code → 404 without a query |
-| FR-010 | `frontend/tests/ResultCard.test.tsx` | shows full short URL; copy button writes to clipboard |
+| FR-010 | `frontend/tests/ResultCard.test.tsx` | shows full short URL; copy button writes to clipboard and says "Copied!" only for the link it copied; each new result is scrolled into view (without animation when reduced motion is asked for) and focuses the copy button |
 | FR-011 | `test/contract/create-link.e2e-spec.ts` + `src/links/expiry.spec.ts` | each option maps to correct offset; absent ⇒ null; unknown ⇒ 400 |
 | FR-012 | `frontend/tests/ResultCard.test.tsx` | renders absolute expiry date/time for temporary link |
 | FR-013 | `test/contract/redirect.e2e-spec.ts` + `test/contract/preview.e2e-spec.ts` + `frontend/tests/PreviewCard.test.tsx` | expired link → 410, no Location; 1 s before expiry → 302; expired preview body and page never contain the original URL |
@@ -150,6 +160,9 @@ from the plan's structure.
 | FR-018 | `test/contract/create-link.e2e-spec.ts` | posting the same URL twice yields two different codes |
 | FR-019 | `contracts/openapi.yaml` | contract tests assert response shapes against the schema |
 | FR-020, SC-009 | `test/contract/rate-limit.e2e-spec.ts` | lookups beyond the limit are refused with 429 for known and unknown codes alike; IPv6 addresses in one /64 share a limit; SC-009 follows from code length (research §2) |
+| FR-022 | `frontend/tests/contrast.test.ts` | button label, link and muted text colours reach 4.5:1 against their background in both colour schemes |
+| FR-023 | `frontend/tests/ThemeToggle.test.tsx` | the device's scheme is active until a pick; a pick applies at once, is stored, and wins after a reload; a storage failure still switches the page |
+| FR-021 | `frontend/tests/ResultCard.test.tsx` | QR code is labelled with the short URL, keeps a four-module quiet zone, and is black on white whatever the colour scheme. Decoding it back to the short URL at 320–1440px viewports is a manual check (see US1) |
 | Security headers | `test/contract/redirect.e2e-spec.ts` | `X-Content-Type-Options`, `X-Frame-Options`/CSP, `Referrer-Policy` present on every response |
 | Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL; log output never contains its value |
 
