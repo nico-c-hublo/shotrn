@@ -259,7 +259,7 @@ from one client exhaust its budget and the 21st lookup, even of a real code, ret
 - [X] T098 Charge only well-formed codes against the unknown-code budget: a malformed path (`/favicon.ico`, `/robots.txt`) is answered 404 without a query, so it reveals nothing and must not lock a visitor out. Contract tests in `backend/test/contract/unknown-code-limit.e2e-spec.ts`; update the contract, data model and research §6
 - [X] T099 Charge a direct visit to an unknown or expired code once, not twice: the redirect path embeds the outcome in the page it serves (`backend/src/links/spa.ts`), and the status screen in `frontend/src/App.tsx` reads it instead of calling `GET /api/links/:code` again
 - [X] T100 Replace the `isExpired` type predicate, whose false branch wrongly narrowed `expiresAt` to `null`, in `backend/src/links/dto/link.response.ts` and `links.service.ts`
-- [ ] T101 Correct the stale 6–10 character comment in `frontend/vite.config.ts`
+- [X] T101 Correct the stale 6–10 character comment in `frontend/vite.config.ts`
 
 **Checkpoint**: Codes are unguessable, guessing is bounded per client, and no response
 reveals a destination to someone who does not hold its code
