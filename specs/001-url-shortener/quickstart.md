@@ -144,7 +144,7 @@ from the plan's structure.
 | FR-007 | `src/links/short-code.spec.ts` + `test/contract/create-link.e2e-spec.ts` | codes come from `crypto.randomInt`, not from any counter; no configuration value reproduces them |
 | FR-008 | `test/contract/redirect.e2e-spec.ts` | Location equals original incl. query and fragment; IDN and percent-encoded paths round-trip |
 | FR-009 | same | unknown code → 404, no Location; malformed code → 404 without a query |
-| FR-010 | `frontend/tests/ResultCard.test.tsx` | shows full short URL; copy button writes to clipboard |
+| FR-010 | `frontend/tests/ResultCard.test.tsx` | shows full short URL; copy button writes to clipboard; each new result is scrolled into view (without animation when reduced motion is asked for) and focuses the copy button |
 | FR-011 | `test/contract/create-link.e2e-spec.ts` + `src/links/expiry.spec.ts` | each option maps to correct offset; absent ⇒ null; unknown ⇒ 400 |
 | FR-012 | `frontend/tests/ResultCard.test.tsx` | renders absolute expiry date/time for temporary link |
 | FR-013 | `test/contract/redirect.e2e-spec.ts` + `test/contract/preview.e2e-spec.ts` + `frontend/tests/PreviewCard.test.tsx` | expired link → 410, no Location; 1 s before expiry → 302; expired preview body and page never contain the original URL |
@@ -155,6 +155,7 @@ from the plan's structure.
 | FR-018 | `test/contract/create-link.e2e-spec.ts` | posting the same URL twice yields two different codes |
 | FR-019 | `contracts/openapi.yaml` | contract tests assert response shapes against the schema |
 | FR-020, SC-009 | `test/contract/rate-limit.e2e-spec.ts` | lookups beyond the limit are refused with 429 for known and unknown codes alike; IPv6 addresses in one /64 share a limit; SC-009 follows from code length (research §2) |
+| FR-022 | `frontend/tests/contrast.test.ts` | button label and link colours reach 4.5:1 against their background in both colour schemes |
 | FR-021 | `frontend/tests/ResultCard.test.tsx` | QR code is labelled with the short URL, keeps a four-module quiet zone, and is black on white whatever the colour scheme. Decoding it back to the short URL at 320–1440px viewports is a manual check (see US1) |
 | Security headers | `test/contract/redirect.e2e-spec.ts` | `X-Content-Type-Options`, `X-Frame-Options`/CSP, `Referrer-Policy` present on every response |
 | Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL; log output never contains its value |
