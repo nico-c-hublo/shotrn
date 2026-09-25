@@ -87,6 +87,10 @@ npm run dev               # backend :3000 + Vite dev server :5173
 npm run build && npm start  # production: backend serves the built SPA
 ```
 
+In development, open <http://localhost:5173>. Vite proxies `/api` and short-code paths to
+the backend, so short links work from either port. Short URLs are built from `BASE_URL`,
+so they point at `:3000`. After `npm start`, everything is on <http://localhost:3000>.
+
 ## Quality gate
 
 All three must pass before pushing; CI runs the same.
@@ -117,9 +121,51 @@ specs/      Specification, plan, research, data model, contract, tasks
 
 Full contract: [`contracts/openapi.yaml`](specs/001-url-shortener/contracts/openapi.yaml).
 
-## Not in v1
+## Technical choices
+
+Each choice is justified, with alternatives considered, in
+[`research.md`](specs/001-url-shortener/research.md).
+
+- **NestJS + React 19/Vite.** NestJS provides DI, the validation pipe, the throttler and
+  exception filters out of the box; the backend also serves the built SPA, so short
+  codes and the UI share one origin (§8).
+- **PostgreSQL 16 + Drizzle ORM.** `INSERT … RETURNING` gives the id in one round-trip,
+  `TIMESTAMPTZ` keeps expiry timezone-correct, and Drizzle provides typed rows and
+  versioned SQL migrations without Prisma/TypeORM weight (§3, §8).
+- **Sqids over the row id.** Short, non-sequential codes with no stored code column and
+  no collision handling; see [How short codes work](#how-short-codes-work) (§1, §2).
+- **301 for permanent, 302 for expiring links.** Permanent links can be cached by
+  browsers because they never change; expiring ones are `no-store` so expiry takes effect
+  for returning visitors (§4).
+- **Preview at `/p/:code`** instead of a bit.ly-style `code+` suffix, which Express
+  routes inconsistently (§5).
+- **No frontend router.** Two screens are picked from `window.location.pathname` (§9).
+- **Validation at the boundary.** `class-validator` DTOs with the platform `URL` parser;
+  only `http`/`https` are accepted (§7).
+- **Tests on a real Postgres.** Testcontainers provisions it, so `npm test` needs only
+  Docker; `pg-mem` was rejected as not Postgres-faithful (§8).
+
+## Assumptions & shortcuts
+
+- **Rate limits are per instance.** `@nestjs/throttler` uses its in-memory store, so
+  with N backend instances the effective limit is N× the configured one. Acceptable for
+  v1 abuse control; a Redis store is the upgrade path (§6).
+- **One reverse proxy in front.** `trust proxy` is set to `1`, so client IPs (and
+  therefore rate-limit keys) are only correct behind exactly one proxy. Adjust it in
+  `backend/src/main.ts` for other topologies.
+- **Server clock decides expiry.** Expiry is a fixed set (`1h`, `1d`, `7d`, `30d`,
+  `never`) computed server-side and stored as an absolute timestamp (§10).
+- **Expired links are kept.** There is no purge job, so an expired code keeps answering
+  `410` instead of `404`; a one-line cron can be added when volume warrants (§11).
+- **No deduplication.** Shortening the same URL twice yields two codes.
+- **Load numbers are headroom, not an SLA.** The [load check](specs/001-url-shortener/load-results.md)
+  ran on one machine with the rate limits raised so it measured the service, not the
+  limiter.
+
+### Not in v1
 
 No accounts, custom aliases, analytics, link editing or deletion, or multi-domain
-support. Private/loopback destination filtering is deliberately deferred — doing it
-correctly requires DNS resolution on the write path and re-checking on read, and a
-literal-IP check alone gives false confidence ([`research.md §7`](specs/001-url-shortener/research.md)).
+support ([spec assumptions](specs/001-url-shortener/spec.md#assumptions)).
+Private/loopback destination filtering is deliberately deferred — doing it correctly
+requires DNS resolution on the write path and re-checking on read, and a literal-IP check
+alone gives false confidence ([`research.md §7`](specs/001-url-shortener/research.md)).
