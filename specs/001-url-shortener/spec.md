@@ -4,6 +4,10 @@
 
 **Created**: 2026-09-21
 
+**Amended**: 2026-09-25 — short codes are unguessable bearer secrets rather than an
+obfuscated counter; unknown-code lookups are limited separately; expired links no
+longer reveal their destination (constitution 1.1.0, Principle III)
+
 **Status**: Draft
 
 **Input**: User description: "Create an URL shortener service. The application can be used to turn a long link into a shorter one that redirects to the original URL"
@@ -27,7 +31,7 @@ a shareable short link.
 
 1. **Given** the visitor is on the home page, **When** they submit a valid `https://`
    URL of 2,000 characters, **Then** a short link is displayed within the page along
-   with a one-click "copy" action, and the short link's path is no longer than 10
+   with a one-click "copy" action, and the short link's path is exactly 11
    characters.
 2. **Given** the visitor submits a URL that has already been shortened by someone else,
    **When** the submission completes, **Then** a new, distinct short link is issued
@@ -123,6 +127,8 @@ link and verifying the full original URL is displayed without any redirect.
 2. **Given** an unissued or expired short code, **When** a user opens its preview view,
    **Then** they see the same "not found" or "expired" page as they would when
    following the link directly.
+3. **Given** an expired short code, **When** a user opens it or its preview view,
+   **Then** the page states when it expired but never shows the original URL.
 
 ---
 
@@ -140,6 +146,13 @@ link and verifying the full original URL is displayed without any redirect.
   redirect.
 - Two visitors submit at exactly the same moment: each receives a distinct short code;
   no code is ever issued twice.
+- A freshly drawn code happens to equal one already issued: the service draws another
+  before answering; the visitor never sees the clash.
+- A visitor opens many short codes that do not exist (typing mistakes, or someone
+  guessing): after a small number within a time window, further lookups from that
+  visitor are refused with a "slow down" message, while visitors following real links
+  are unaffected. Rotating through the addresses of one IPv6 network does not reset
+  the count.
 - The service restarts between creating a short link and following it: the link still
   works (short links are durable).
 - A visitor rapidly submits many links (hundreds per minute): further submissions
@@ -164,10 +177,12 @@ link and verifying the full original URL is displayed without any redirect.
   itself.
 - **FR-005**: Every issued short code MUST be unique; the system MUST never issue the
   same code for two different original URLs.
-- **FR-006**: Short codes MUST be at most 10 characters, composed only of unaccented
+- **FR-006**: Short codes MUST be exactly 11 characters, composed only of unaccented
   letters and digits, and MUST be case-sensitive.
-- **FR-007**: Short codes MUST NOT be predictable from one another: knowing one code
-  MUST NOT let a visitor guess the next or previous issued code by simple increment.
+- **FR-007**: Short codes MUST be unguessable. Each code is drawn independently at
+  random, so knowing any number of issued codes gives no information about any other,
+  and no configuration value, if disclosed, lets anyone compute issued codes. Without
+  a link's code, a visitor MUST NOT be able to learn its original URL.
 - **FR-008**: Opening a short link MUST redirect the visitor to the original URL
   exactly as submitted (after trimming), preserving path, query string, and fragment.
 - **FR-009**: Opening an unissued short code MUST display a "link not found" page and
@@ -180,7 +195,8 @@ link and verifying the full original URL is displayed without any redirect.
 - **FR-012**: The result view MUST display the absolute expiry date and time for a
   temporary link.
 - **FR-013**: Opening a short link after its expiry MUST display a "link expired" page
-  and MUST NOT redirect.
+  and MUST NOT redirect. Neither that page nor the preview of an expired link may
+  reveal the original URL.
 - **FR-014**: Short links MUST survive service restarts; a link issued before a restart
   MUST keep working afterwards until it expires.
 - **FR-015**: The system MUST limit how many links a single visitor can create within
@@ -197,10 +213,16 @@ link and verifying the full original URL is displayed without any redirect.
 - **FR-019**: The system MUST expose its shortening capability in a way that can be
   driven programmatically as well as through the web interface, so that it can be
   integrated by scripts and other tools using the same validation rules.
+- **FR-020**: The system MUST limit how many unknown short codes a single visitor can
+  look up (by following or previewing) within a time window, counted separately from
+  successful lookups, and MUST refuse further lookups from that visitor with a clear
+  message until the window ends. Visitors on IPv6 are counted per /64 network, so
+  rotating addresses within one allocation does not escape the limit.
 
 ### Key Entities
 
-- **Short Link**: The core record. Attributes: short code (unique, case-sensitive),
+- **Short Link**: The core record. Attributes: short code (unique, case-sensitive,
+  random; it identifies the record),
   original URL (validated, stored exactly as submitted after trimming), creation
   timestamp, optional expiry timestamp. A short link is either *permanent* (no expiry)
   or *temporary* (expiry set). Once expired it is never reused for a different
@@ -226,8 +248,10 @@ link and verifying the full original URL is displayed without any redirect.
   with links expiring at boundaries of 1 second.
 - **SC-007**: After an unplanned restart, 100% of previously issued, unexpired links
   continue to redirect correctly.
-- **SC-008**: Every short link path is at most 10 characters, making a full short link
+- **SC-008**: Every short link path is exactly 11 characters, making a full short link
   under 30 characters for a typical short domain.
+- **SC-009**: With 10 million links issued, 10,000 coordinated visitors each guessing at
+  the highest rate FR-020 allows find, in expectation, fewer than one link per year.
 
 ## Assumptions
 
@@ -248,8 +272,14 @@ link and verifying the full original URL is displayed without any redirect.
   30 days so the "expired" page can be shown instead of "not found"; after that they
   may be purged. Purging is an operational concern outside this spec.
 - **Duplicate originals**: No deduplication (FR-018). Duplicate records are an
-  accepted cost: with 6 alphanumeric characters there are ~56 billion possible codes,
+  accepted cost: with 11 alphanumeric characters there are ~5.2×10¹⁹ possible codes,
   and per-link expiry makes sharing a code between submitters impractical.
+- **Threat model**: An original URL may be private (a shared document, an unlisted
+  video). The short code is the only credential that unlocks it, so it is treated as a
+  secret: 11 random alphanumeric characters carry ~65 bits of entropy, above the
+  64-bit floor commonly required of bearer tokens such as session identifiers.
+  Anyone who holds a code may see its destination; the preview view is intended for
+  exactly those people.
 - **Single short domain**: The service runs on one domain; multi-domain / branded
   domains are out of scope.
 - **Abuse limits**: The exact rate-limit thresholds (e.g. 60 creations per hour per
