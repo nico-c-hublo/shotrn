@@ -93,6 +93,9 @@ weaken one without amending the constitution first.
 - Error responses carry a stable code and a safe message — never a stack trace, SQL, or
   filesystem path.
 - Secrets come from the environment and never reach a log, a response, or the repo.
+  Short codes count as secrets: logs carry the route pattern (`GET /:code`), never the
+  path, and a failed query is logged by its SQL and database error, never its
+  parameters (Drizzle puts them in the error message; see `describeFailure`).
 - Short codes are 13 characters from a CSPRNG and derived from nothing, so no leaked
   value can compute them.
 - An expired link reveals when it expired, never where it pointed. The expired
