@@ -194,7 +194,9 @@ link and verifying the full original URL is displayed without any redirect.
 - **FR-009**: Opening an unissued short code MUST display a "link not found" page and
   MUST NOT redirect anywhere.
 - **FR-010**: The result view after shortening MUST display the full short link and
-  offer a one-action copy to clipboard.
+  offer a one-action copy to clipboard. It MUST bring the result into view and move
+  focus to the copy action, so a visitor on a small screen, or with the on-screen
+  keyboard open, sees the result without scrolling for it.
 - **FR-011**: At creation time a visitor MUST be able to choose an expiry duration from
   a fixed set of options (at minimum: 1 hour, 1 day, 7 days, 30 days, never). When no
   option is chosen the link MUST be permanent.
@@ -229,6 +231,9 @@ link and verifying the full original URL is displayed without any redirect.
   scheme, keep the four-module quiet zone the QR standard requires, carry a text
   alternative naming the link it encodes, and render without horizontal scrolling at
   every viewport width from 320 CSS pixels upwards.
+- **FR-022**: Text and the labels of controls MUST have a contrast ratio of at least
+  4.5:1 against their background (WCAG 2.1 AA) in both the light and the dark colour
+  scheme.
 
 ### Key Entities
 
@@ -304,3 +309,6 @@ link and verifying the full original URL is displayed without any redirect.
 - **QR code** (FR-021) was added from the follow-up input "add a QR code rendered just
   behind the short url when it's created, so the user can share directly". Only the
   result view shows it: the preview is for checking a link, not for passing it on.
+- **Mobile audit follow-ups** (FR-010's scroll and focus, FR-022) came from checking the
+  interface at 320–1440px: on a 320×568 phone or a landscape phone the result appeared
+  below the fold, and white button text in dark mode measured 2.28:1.
