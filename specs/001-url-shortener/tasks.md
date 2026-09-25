@@ -288,7 +288,7 @@ merged without CI.
 - [X] T107 Rework `.github/workflows/ci.yml`: trigger on pushes to `master` and on pull requests; `permissions: contents: read`; cancel superseded runs; per-job timeouts; separate `quality` (typecheck, lint, format), `test` (production build, then the full suite, so the static-assets test runs instead of skipping) and `audit` jobs, with the audit also on a weekly schedule; actions pinned to commit SHAs; Node from `.nvmrc`
 - [X] T108 Add `.nvmrc` pinning Node 22, the plan's target platform
 - [X] T109 Switch ESLint to type-aware rules (`recommendedTypeChecked`) and fix the findings in source. Relax only the `no-unsafe-*` and `require-await` rules in tests, where supertest bodies are untyped JSON; promise rules such as `no-floating-promises` stay on everywhere
-- [ ] T110 Add `eslint-plugin-react-hooks` for the frontend (rules of hooks, exhaustive deps); justify the dependency in research §8
+- [X] T110 Add `eslint-plugin-react-hooks` for the frontend (rules of hooks, exhaustive deps); justify the dependency in research §8
 - [ ] T111 Enable `noUncheckedIndexedAccess` and `noImplicitOverride` in both workspaces and fix the findings
 - [ ] T112 Remove `--passWithNoTests` from both test runners, so a broken test glob fails instead of passing; update the bisect notes in `CLAUDE.md`
 - [ ] T113 Add `.github/dependabot.yml` for npm and GitHub Actions, weekly and grouped

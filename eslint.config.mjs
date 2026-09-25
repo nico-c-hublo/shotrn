@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
@@ -32,6 +33,12 @@ export default defineConfig(
       '@typescript-eslint/no-unsafe-enum-comparison': 'off',
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
+  },
+  {
+    // Rules of hooks and exhaustive effect dependencies: mistakes here fail at run time,
+    // not at compile time, so only a linter catches them.
+    files: ['frontend/**/*.{ts,tsx}'],
+    ...reactHooks.configs.flat.recommended,
   },
   {
     files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/*.test.tsx', 'backend/test/**/*.ts'],
