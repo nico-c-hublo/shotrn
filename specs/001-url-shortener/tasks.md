@@ -253,6 +253,14 @@ from one client exhaust its budget and the 21st lookup, even of a real code, ret
 - [X] T095 Re-run the load check (`npm run load -w backend`) with the new codes and record the result in [load-results.md](load-results.md)
 - [X] T096 Run `npm run check` and `npm test` from a clean checkout and confirm the collected test count grew by the new suites
 
+### Review follow-ups (code review of PR #3)
+
+- [ ] T097 Settle the reservation of a lookup whose client disconnected while it waited in `UnknownCodeLimiter.admit`, in `backend/src/links/unknown-code.guard.ts`; unit test in `backend/src/links/unknown-code.guard.spec.ts` proving later lookups are not held forever
+- [ ] T098 Charge only well-formed codes against the unknown-code budget: a malformed path (`/favicon.ico`, `/robots.txt`) is answered 404 without a query, so it reveals nothing and must not lock a visitor out. Contract tests in `backend/test/contract/unknown-code-limit.e2e-spec.ts`; update the contract, data model and research §6
+- [ ] T099 Charge a direct visit to an unknown or expired code once, not twice: the redirect path embeds the outcome in the page it serves (`backend/src/links/spa.ts`), and the status screen in `frontend/src/App.tsx` reads it instead of calling `GET /api/links/:code` again
+- [ ] T100 Replace the `isExpired` type predicate, whose false branch wrongly narrowed `expiresAt` to `null`, in `backend/src/links/dto/link.response.ts` and `links.service.ts`
+- [ ] T101 Correct the stale 6–10 character comment in `frontend/vite.config.ts`
+
 **Checkpoint**: Codes are unguessable, guessing is bounded per client, and no response
 reveals a destination to someone who does not hold its code
 
