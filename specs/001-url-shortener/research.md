@@ -223,7 +223,7 @@ on the DTO:
 2. Reject if length > 2048.
 3. `new URL(value)` — reject on throw.
 4. `protocol` must be `http:` or `https:`.
-5. `hostname` (lower-cased) must not equal the service's own host from `BASE_URL`.
+5. `hostname` (lower-cased) must not equal the service's own host from `PUBLIC_BASE_URL`.
 6. Store `value` (trimmed original string), not `url.href`, to preserve the exact
    input incl. fragment (FR-008). Redirect uses the stored string verbatim.
 

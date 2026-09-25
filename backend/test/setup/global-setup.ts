@@ -20,7 +20,7 @@ export default async function globalSetup(): Promise<void> {
 
   const url = container.getConnectionUri();
   process.env.DATABASE_URL = url;
-  process.env.BASE_URL ??= 'http://localhost:3000';
+  process.env.PUBLIC_BASE_URL ??= 'http://localhost:3000';
 
   const pool = new Pool({ connectionString: url });
   try {

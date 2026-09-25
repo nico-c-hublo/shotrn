@@ -50,14 +50,18 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const problems: string[] = [];
 
   const databaseUrl = requireString(source, 'DATABASE_URL', problems);
-  const baseUrl = requireString(source, 'BASE_URL', problems);
+  // Not BASE_URL: Vite and Vitest define process.env.BASE_URL (`/`) themselves.
+  const baseUrl = requireString(source, 'PUBLIC_BASE_URL', problems);
+  if (baseUrl === '' && /^https?:\/\//i.test(source.BASE_URL ?? '')) {
+    problems.push('BASE_URL was renamed to PUBLIC_BASE_URL; set PUBLIC_BASE_URL instead');
+  }
 
   let baseHostname = '';
   if (baseUrl !== '') {
     try {
       baseHostname = new URL(baseUrl).hostname.toLowerCase();
     } catch {
-      problems.push('BASE_URL must be an absolute URL');
+      problems.push('PUBLIC_BASE_URL must be an absolute URL');
     }
   }
 

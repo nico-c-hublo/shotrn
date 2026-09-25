@@ -11,7 +11,7 @@ export interface UrlValidationContext {
   readonly ownHostname: string;
 }
 
-/** Mutable because the boot sequence learns BASE_URL before any request is served. */
+/** Mutable because the boot sequence learns PUBLIC_BASE_URL before any request is served. */
 const context: { ownHostname: string } = { ownHostname: '' };
 
 export function configureUrlValidation(ctx: UrlValidationContext): void {
