@@ -366,9 +366,9 @@ horizontal scrolling.
 
 - [X] T131 [P] Contrast test in `frontend/tests/contrast.test.ts`: read each token as a `light-dark()` pair, keep the existing assertions, and assert the muted colour the inactive icon uses reaches 4.5:1 against the background in both schemes (FR-022, FR-023)
 - [X] T132 Collapse the colour tokens in `frontend/src/styles.css` into `light-dark()` pairs, and pin `color-scheme` from `data-theme` on `<html>` (research.md §13)
-- [ ] T133 [P] Component tests in `frontend/tests/ThemeToggle.test.tsx`: the device's scheme is active until a pick; a pick sets `data-theme`, is stored, and moves `aria-pressed`; a stored pick wins over the device; a device change is followed only while nothing is stored; a storage failure still switches the page (FR-023)
-- [ ] T134 Add `frontend/src/theme.ts` (read, store and apply the choice, every storage access guarded) and apply the stored choice in `frontend/src/main.tsx` before rendering (FR-023)
-- [ ] T135 Add `frontend/src/components/ThemeToggle.tsx`, render it beside the title in `frontend/src/App.tsx`, and style it in `frontend/src/styles.css`: icon buttons, muted when inactive, accent when active (FR-023)
+- [X] T133 [P] Component tests in `frontend/tests/ThemeToggle.test.tsx`: the device's scheme is active until a pick; a pick sets `data-theme`, is stored, and moves `aria-pressed`; a stored pick wins over the device; a device change is followed only while nothing is stored; a storage failure still switches the page (FR-023)
+- [X] T134 Add `frontend/src/theme.ts` (read, store and apply the choice, every storage access guarded) and apply the stored choice in `frontend/src/main.tsx` before rendering (FR-023)
+- [X] T135 Add `frontend/src/components/ThemeToggle.tsx`, render it beside the title in `frontend/src/App.tsx`, and style it in `frontend/src/styles.css`: icon buttons, muted when inactive, accent when active (FR-023)
 - [ ] T136 Component tests in `frontend/tests/ThemeToggle.test.tsx`: a pick runs through a view transition and the highlight moves inside it; with reduced motion, or without the API, the page switches without one (FR-023)
 - [ ] T137 Cross-fade a pick with `document.startViewTransition` in `frontend/src/components/ThemeToggle.tsx`, flushing the highlight inside the transition, and set the fade's duration in `frontend/src/styles.css` (research.md §13)
 
