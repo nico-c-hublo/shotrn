@@ -18,6 +18,11 @@ npm test        # unit + contract + integration + frontend; needs Docker, nothin
 npm run dev     # backend :3000 + Vite :5173
 ```
 
+Use npm 11 or later. It writes the lockfile, and npm 10 (bundled with Node 22) resolves
+optional peer dependencies differently: it rejects an npm 11 lockfile in `npm ci`, and
+an npm 10 `npm install` rewrites it for everyone else. CI installs npm 11 for the same
+reason.
+
 Tests provision their own PostgreSQL through Testcontainers. Never point the suite at a
 hand-created database: "no manually provisioned state" is a constitutional requirement.
 

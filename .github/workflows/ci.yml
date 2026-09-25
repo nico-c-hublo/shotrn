@@ -33,6 +33,9 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      # The lockfile is written by npm 11. Node 22 ships npm 10, which resolves optional
+      # peer dependencies differently and rejects that lockfile as out of sync.
+      - run: npm install --global npm@11
       - run: npm ci
       - run: npm run check
 
@@ -47,6 +50,9 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      # The lockfile is written by npm 11. Node 22 ships npm 10, which resolves optional
+      # peer dependencies differently and rejects that lockfile as out of sync.
+      - run: npm install --global npm@11
       - run: npm ci
       # Building first proves the production build works, and lets the static-assets
       # contract test run against real bundles instead of skipping.
@@ -63,5 +69,6 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .node-version
-      # Reads the lockfile only; nothing needs installing.
+      - run: npm install --global npm@11
+      # Reads the lockfile only; nothing else needs installing.
       - run: npm audit --audit-level=high

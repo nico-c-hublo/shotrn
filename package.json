@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "URL shortener: turn a long link into a short one that redirects to the original URL",
   "engines": {
-    "node": ">=22"
+    "node": ">=22",
+    "npm": ">=11"
   },
   "workspaces": [
     "backend",
