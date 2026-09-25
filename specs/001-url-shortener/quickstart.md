@@ -76,6 +76,11 @@ and in a phone's landscape orientation, in both light and dark mode. At each siz
 page must not scroll horizontally, and a phone camera pointed at the QR code must offer
 to open exactly the short link (FR-021).
 
+Pick the scheme the device is not using with the sun / moon toggle in the top right
+corner: the page switches at once, including the expiry drop-down, the picked icon
+takes the accent colour, and a reload keeps the pick. The QR code stays black on white
+(FR-021, FR-023).
+
 ### US2 — Follow a link
 
 ```bash
@@ -155,7 +160,8 @@ from the plan's structure.
 | FR-018 | `test/contract/create-link.e2e-spec.ts` | posting the same URL twice yields two different codes |
 | FR-019 | `contracts/openapi.yaml` | contract tests assert response shapes against the schema |
 | FR-020, SC-009 | `test/contract/rate-limit.e2e-spec.ts` | lookups beyond the limit are refused with 429 for known and unknown codes alike; IPv6 addresses in one /64 share a limit; SC-009 follows from code length (research §2) |
-| FR-022 | `frontend/tests/contrast.test.ts` | button label and link colours reach 4.5:1 against their background in both colour schemes |
+| FR-022 | `frontend/tests/contrast.test.ts` | button label, link and muted text colours reach 4.5:1 against their background in both colour schemes |
+| FR-023 | `frontend/tests/ThemeToggle.test.tsx` | the device's scheme is active until a pick; a pick applies at once, is stored, and wins after a reload; a storage failure still switches the page |
 | FR-021 | `frontend/tests/ResultCard.test.tsx` | QR code is labelled with the short URL, keeps a four-module quiet zone, and is black on white whatever the colour scheme. Decoding it back to the short URL at 320–1440px viewports is a manual check (see US1) |
 | Security headers | `test/contract/redirect.e2e-spec.ts` | `X-Content-Type-Options`, `X-Frame-Options`/CSP, `Referrer-Policy` present on every response |
 | Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL; log output never contains its value |
