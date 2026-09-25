@@ -31,23 +31,8 @@ export class RedirectController {
       return;
     }
 
-    const target = resolved.row.originalUrl;
-    const scheme = safeScheme(target);
-    if (scheme !== 'http:' && scheme !== 'https:') {
-      sendSpa(res, 404);
-      return;
-    }
-
     const permanent = resolved.row.expiresAt === null;
     res.setHeader('Cache-Control', permanent ? 'public, max-age=86400' : 'no-store');
-    res.redirect(permanent ? 301 : 302, target);
-  }
-}
-
-function safeScheme(url: string): string | null {
-  try {
-    return new URL(url).protocol;
-  } catch {
-    return null;
+    res.redirect(permanent ? 301 : 302, resolved.row.originalUrl);
   }
 }
