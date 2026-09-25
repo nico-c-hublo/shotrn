@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Res } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { LinkNotFoundError } from '../common/errors';
 import { CreateLinkDto } from './dto/create-link.dto';
@@ -10,10 +10,10 @@ import { LinksService } from './links.service';
 export class LinksController {
   constructor(private readonly links: LinksService) {}
 
-  /** FR-001, FR-011, FR-018. Rate limited per FR-015. */
+  /** FR-001, FR-011, FR-018. Rate limited by the `create` throttler only (FR-015). */
   @Post()
   @HttpCode(201)
-  @Throttle({ create: {} })
+  @SkipThrottle({ redirect: true })
   create(@Body() dto: CreateLinkDto): Promise<LinkResponse> {
     return this.links.create(dto.url, dto.expiry);
   }
@@ -24,7 +24,7 @@ export class LinksController {
    * error envelope.
    */
   @Get(':code')
-  @Throttle({ redirect: {} })
+  @SkipThrottle({ create: true })
   async findOne(@Param('code') code: string, @Res({ passthrough: true }) res: Response) {
     const resolved = await this.links.resolve(code);
     if (resolved.outcome === 'not-found') throw new LinkNotFoundError();

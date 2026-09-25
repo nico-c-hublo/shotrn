@@ -33,7 +33,8 @@ export class AppModule {
         ThrottlerModule.forRoot({
           throttlers: [
             // FR-015. Named throttlers let the redirect path stay generous while creation
-            // stays tight; exceeding one never blocks the other.
+            // stays tight. The global guard applies every throttler to every route, so each
+            // route must @SkipThrottle the one that is not its own, or the tighter limit wins.
             { name: 'create', ttl: 60 * 60 * 1000, limit: env.rateLimitCreatePerHour },
             { name: 'redirect', ttl: 60 * 1000, limit: env.rateLimitRedirectPerMinute },
           ],

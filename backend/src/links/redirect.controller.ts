@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { LinksService } from './links.service';
 import { sendSpa } from './spa';
@@ -15,7 +15,7 @@ export class RedirectController {
   constructor(private readonly links: LinksService) {}
 
   @Get(':code')
-  @Throttle({ redirect: {} })
+  @SkipThrottle({ create: true })
   async redirect(@Param('code') code: string, @Res() res: Response): Promise<void> {
     const resolved = await this.links.resolve(code);
 
