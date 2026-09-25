@@ -22,9 +22,12 @@ export interface ExpiredLinkResponse {
   expiresAt: string;
 }
 
-/** Narrows `expiresAt` to a Date, since only a temporary link can expire. */
-export function isExpired(expiresAt: Date | null, now: Date = new Date()): expiresAt is Date {
-  return expiresAt !== null && expiresAt.getTime() <= now.getTime();
+/**
+ * A plain boolean, not a type predicate: `expiresAt is Date` would also narrow the false
+ * branch to `null`, typing an unexpired temporary link as permanent.
+ */
+export function isExpired(expiresAt: Date, now: Date = new Date()): boolean {
+  return expiresAt.getTime() <= now.getTime();
 }
 
 export function toLinkResponse(row: LinkRow, baseUrl: string): LinkResponse {

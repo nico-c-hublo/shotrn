@@ -67,7 +67,7 @@ export class LinksService {
 
     // The expired outcome deliberately carries no row: nothing downstream can leak the
     // destination of a link it was never handed (FR-013).
-    if (isExpired(row.expiresAt, now)) {
+    if (row.expiresAt !== null && isExpired(row.expiresAt, now)) {
       return { outcome: 'expired', response: toExpiredLinkResponse(code, row.expiresAt) };
     }
     return { outcome: 'active', row, response: toLinkResponse(row, this.env.baseUrl) };
