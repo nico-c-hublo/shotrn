@@ -249,7 +249,8 @@ sits next to internal services.
 | Jest + Supertest | Nest default test stack; contract tests over HTTP | Vitest on backend requires SWC decorator config — not worth two configs |
 | Vitest + Testing Library | Vite-native frontend tests | — |
 | `@testcontainers/postgresql` | Constitution IV: one command, no manually provisioned state | `pg-mem` is not Postgres-faithful (identity, TIMESTAMPTZ); docker-compose-managed test DB is "manually provisioned state" |
-| ESLint (typescript-eslint) + Prettier | Constitution II: tooling-enforced quality | — |
+| ESLint (typescript-eslint) + Prettier | Constitution II: tooling-enforced quality. Type-aware since Phase 9, so unawaited promises (including supertest thenables) fail the gate | — |
+| `eslint-plugin-react-hooks` | Rules of hooks and exhaustive effect dependencies: violations compile fine and fail only at run time | Review alone misses a missing effect dependency; the React team's own plugin is the reference implementation |
 
 ## 9. Frontend routing without a router
 

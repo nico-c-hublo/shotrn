@@ -89,7 +89,7 @@ function safeMessage(exception: HttpException, status: number): string {
   const payload = exception.getResponse();
   if (typeof payload === 'string') return payload;
   if (payload && typeof payload === 'object' && 'message' in payload) {
-    const message = (payload as { message: unknown }).message;
+    const { message } = payload;
     if (Array.isArray(message)) return message.join('; ');
     if (typeof message === 'string') return message;
   }

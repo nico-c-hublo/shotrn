@@ -1,20 +1,67 @@
 name: CI
 
+# Constitution, Development Workflow: the same checks as the local gate run on every change,
+# plus a dependency audit. A red run blocks the merge.
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
+  # A new advisory can appear without any change here, so the audit also runs weekly.
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+# Least privilege: no job writes to the repository.
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request makes an in-progress run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  gate:
+  quality:
+    name: Typecheck, lint, format
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Actions are pinned to commit SHAs: a tag can be moved, a commit cannot.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run check
+
+  test:
+    name: Build and test
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Building first proves the production build works, and lets the static-assets
+      # contract test run against real bundles instead of skipping.
+      - run: npm run build
+      # Testcontainers starts PostgreSQL through the runner's Docker daemon.
       - run: npm test
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      # Reads the lockfile only; nothing needs installing.
       - run: npm audit --audit-level=high

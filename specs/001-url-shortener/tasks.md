@@ -278,6 +278,24 @@ reveals a destination to someone who does not hold its code
 
 ---
 
+## Phase 9: Quality gate hardening
+
+**Purpose**: Make the CI gate that the constitution requires actually run, and tighten the
+checks it enforces. The workflow from T010 never ran: it triggered on pushes to `main`,
+which does not exist, and GitHub reported no workflow for the repository, so PR #3
+merged without CI.
+
+- [X] T107 Rework `.github/workflows/ci.yml`: trigger on pushes to `master` and on pull requests; `permissions: contents: read`; cancel superseded runs; per-job timeouts; separate `quality` (typecheck, lint, format), `test` (production build, then the full suite, so the static-assets test runs instead of skipping) and `audit` jobs, with the audit also on a weekly schedule; actions pinned to commit SHAs; Node from `.nvmrc`
+- [X] T108 Add `.nvmrc` pinning Node 22, the plan's target platform
+- [X] T109 Switch ESLint to type-aware rules (`recommendedTypeChecked`) and fix the findings in source. Relax only the `no-unsafe-*` and `require-await` rules in tests, where supertest bodies are untyped JSON; promise rules such as `no-floating-promises` stay on everywhere
+- [X] T110 Add `eslint-plugin-react-hooks` for the frontend (rules of hooks, exhaustive deps); justify the dependency in research §8
+- [X] T111 Enable `noUncheckedIndexedAccess` and `noImplicitOverride` in both workspaces and fix the findings
+- [X] T112 Remove `--passWithNoTests` from both test runners, so a broken test glob fails instead of passing; update the bisect notes in `CLAUDE.md`
+- [X] T113 Add `.github/dependabot.yml` for npm and GitHub Actions, weekly and grouped
+- [X] T114 Confirm the workflow runs on the pull request for this phase
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

@@ -22,7 +22,8 @@ interface Outcome {
 
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;
-  return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)];
+  // The index is always in range here; `?? 0` only satisfies noUncheckedIndexedAccess.
+  return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)] ?? 0;
 }
 
 async function run(total: number, task: () => Promise<boolean>): Promise<Outcome> {

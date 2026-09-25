@@ -53,7 +53,8 @@ export function ShortenForm({ onCreated }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    // handleSubmit catches its own errors; `void` marks the promise as deliberately unawaited.
+    <form onSubmit={(event) => void handleSubmit(event)} noValidate>
       <label htmlFor="url">Long link</label>
       <input
         id="url"

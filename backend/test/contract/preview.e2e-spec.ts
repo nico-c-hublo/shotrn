@@ -66,7 +66,7 @@ describe('GET /api/links/:code (preview)', () => {
     expect(res.body).toEqual({
       code: created.code,
       status: 'expired',
-      expiresAt: rows[0].expires_at.toISOString(),
+      expiresAt: rows[0]?.expires_at.toISOString(),
     });
     expect(res.text).not.toContain('expired-secret');
   });
