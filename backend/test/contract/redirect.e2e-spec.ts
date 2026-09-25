@@ -64,6 +64,9 @@ describe('GET /:code', () => {
     const res = await request(server()).get('/zzzzzzzzzzz').expect(404);
     expect(res.headers.location).toBeUndefined();
     expect(res.text).toContain('<div id="root">');
+    // The page states the outcome, so the SPA need not look the code up (and be charged
+    // for it) a second time.
+    expect(res.text).toContain('<meta name="shotrn-link-status" content="not-found">');
   });
 
   it.each(['zzzzzz', 'zzzzzzzzzzzz', 'zzzzzzzzzz-'])(
@@ -107,12 +110,16 @@ describe('GET /:code', () => {
 
   it('returns 410 with no Location one second after expiry', async () => {
     const code = await create('https://example.com/gone-secret', '1h');
-    await ctx.pool.query(
-      "UPDATE links SET created_at = now() - interval '2 hours', expires_at = now() - interval '1 second'",
+    const { rows } = await ctx.pool.query<{ expires_at: Date }>(
+      "UPDATE links SET created_at = now() - interval '2 hours', expires_at = now() - interval '1 second' RETURNING expires_at",
     );
 
     const res = await request(server()).get(`/${code}`).expect(410);
     expect(res.headers.location).toBeUndefined();
+    expect(res.text).toContain('<meta name="shotrn-link-status" content="expired">');
+    expect(res.text).toContain(
+      `<meta name="shotrn-link-expires-at" content="${rows[0].expires_at.toISOString()}">`,
+    );
     // FR-013: the expired page must not carry the destination either.
     expect(res.text).not.toContain('gone-secret');
   });

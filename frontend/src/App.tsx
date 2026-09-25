@@ -4,6 +4,7 @@ import { PreviewCard } from './components/PreviewCard';
 import { ResultCard } from './components/ResultCard';
 import { ShortenForm } from './components/ShortenForm';
 import { StatusScreen } from './components/StatusScreen';
+import { readServedOutcome } from './served-outcome';
 
 /**
  * Two screens plus a status screen, selected from the path. A router dependency would buy
@@ -62,6 +63,12 @@ function CodeScreen({ code, preview }: { code: string; preview: boolean }) {
   return <PreviewCard link={result.link} />;
 }
 
+/** A direct visit that did not redirect: the served page usually says why already. */
+function StatusRoute({ code }: { code: string }) {
+  const served = readServedOutcome();
+  return served ? <StatusScreen {...served} /> : <CodeScreen code={code} preview={false} />;
+}
+
 export function App({ pathname = window.location.pathname }: { pathname?: string }) {
   const route = parseRoute(pathname);
 
@@ -72,7 +79,7 @@ export function App({ pathname = window.location.pathname }: { pathname?: string
       </h1>
       {route.kind === 'home' && <Home />}
       {route.kind === 'preview' && <CodeScreen code={route.code} preview />}
-      {route.kind === 'status' && <CodeScreen code={route.code} preview={false} />}
+      {route.kind === 'status' && <StatusRoute code={route.code} />}
     </main>
   );
 }

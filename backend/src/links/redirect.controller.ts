@@ -22,12 +22,12 @@ export class RedirectController {
     const resolved = await this.links.resolve(code);
 
     if (resolved.outcome === 'not-found') {
-      sendSpa(res, 404);
+      sendSpa(res, 404, { kind: 'not-found' });
       return;
     }
 
     if (resolved.outcome === 'expired') {
-      sendSpa(res, 410);
+      sendSpa(res, 410, { kind: 'expired', expiresAt: resolved.response.expiresAt });
       return;
     }
 

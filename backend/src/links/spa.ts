@@ -23,7 +23,26 @@ function indexHtml(): string {
   return cached;
 }
 
+/**
+ * Why a code could not be followed. Stated in the page itself so the SPA's status screen
+ * does not look the code up again, which the unknown-code limit would charge a second
+ * time (research.md §6). Mirrored by `frontend/src/served-outcome.ts`.
+ */
+export type ServedOutcome = { kind: 'not-found' } | { kind: 'expired'; expiresAt: string };
+
 /** Sends the SPA shell with an explicit status so 404/410 stay accurate for crawlers and tests. */
-export function sendSpa(res: Response, status: number): void {
-  res.status(status).type('html').send(indexHtml());
+export function sendSpa(res: Response, status: number, outcome?: ServedOutcome): void {
+  const html = indexHtml();
+  res
+    .status(status)
+    .type('html')
+    .send(outcome ? html.replace('</head>', `${outcomeTags(outcome)}</head>`) : html);
+}
+
+function outcomeTags(outcome: ServedOutcome): string {
+  // Neither a fixed keyword nor an ISO-8601 timestamp contains a character that needs
+  // escaping in an attribute; the destination is never part of it (FR-013).
+  const status = `<meta name="shotrn-link-status" content="${outcome.kind}">`;
+  if (outcome.kind === 'not-found') return status;
+  return `${status}<meta name="shotrn-link-expires-at" content="${outcome.expiresAt}">`;
 }

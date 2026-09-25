@@ -175,8 +175,10 @@ stop.
   version refused it, and the load check caught the effect: 50 concurrent hits from one
   address turned into 429s. Waiting costs a real visitor the length of one lookup, and
   the redirect throttler already bounds how many requests a client can have queued.
-- A browser visit to an unknown code costs two misses (the page load, then the SPA's
-  status fetch), so a person gets about ten typos per window.
+- A browser visit to an unknown code costs one miss. The redirect path states the
+  outcome in the page it serves (`<meta name="shotrn-link-status">`, plus
+  `shotrn-link-expires-at` for a 410), so the SPA's status screen does not look the code
+  up again. It did at first, which charged every typo twice (code review of PR #3).
 - Only well-formed codes are charged. A malformed path (`/favicon.ico`, `/robots.txt`)
   is answered 404 without a query, so it reveals nothing; charging it let a browser's
   own background requests lock a visitor out (code review of PR #3).
