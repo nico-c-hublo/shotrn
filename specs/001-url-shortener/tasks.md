@@ -209,6 +209,55 @@ codes return 404/410 matching the redirect path.
 
 ---
 
+## Phase 8: Unguessable short codes (amendment 2026-09-25, constitution 1.1.0)
+
+**Purpose**: Treat short codes as bearer secrets. Random stored codes replace Sqids,
+unknown-code lookups get their own per-client budget, every limit is keyed per IPv6
+/64, and expired links stop revealing their destination
+([research.md §1, §2, §5, §6](research.md)).
+
+**Independent Test**: A created code is 11 characters and resolves; 20 unknown codes
+from one client exhaust its budget and the 21st lookup, even of a real code, returns
+429; an expired link's preview body carries no `originalUrl`.
+
+### Design
+
+- [X] T079 Amend `.specify/memory/constitution.md` to 1.1.0: codes are CSPRNG bearer secrets with ≥ 64 bits of entropy, unknown-code lookups are limited per client and IPv6 /64, expired links withhold their destination
+- [X] T080 Amend [spec.md](spec.md): FR-006 (exactly 11 characters), FR-007 (independently random), FR-013 (expired pages withhold the URL), FR-020 (unknown-code limit), SC-008, SC-009, threat-model assumption
+- [X] T081 Amend [research.md](research.md) §1, §2, §5, §6, §8, [plan.md](plan.md), [data-model.md](data-model.md), [contracts/openapi.yaml](contracts/openapi.yaml) (2.0.0) and [quickstart.md](quickstart.md)
+
+### Random stored codes (FR-005, FR-006, FR-007)
+
+- [ ] T082 [P] Unit tests in `backend/src/links/short-code.spec.ts`: generated codes match `^[0-9A-Za-z]{11}$`; with a stub random source every alphabet character is reachable at every position; `isWellFormedCode` rejects wrong lengths and characters; no reserved first path segment (`api`, `p`, `assets`) has `CODE_LENGTH` characters
+- [ ] T083 [P] Replace the Sqids codec in `backend/src/links/short-code.ts` with `CODE_LENGTH = 11`, `generateCode()` drawing each character with `crypto.randomInt(62)`, and `isWellFormedCode()`; replace `short-codec.provider.ts` with `code-generator.provider.ts` (`CODE_GENERATOR` token)
+- [ ] T084 Add migration `backend/src/db/migrations/0002_random_codes.sql` and update `backend/src/db/schema.ts`: drop the identity-keyed `links`, create it keyed by `code TEXT COLLATE "C"` with `CHECK (code ~ '^[0-9A-Za-z]{11}$')`, and grant the app role `SELECT, INSERT` only
+- [ ] T085 Repository in `backend/src/links/links.repository.ts`: `insert` takes the code and uses `ON CONFLICT (code) DO NOTHING RETURNING *`, returning `null` on a clash; `findById` becomes `findByCode`. Integration tests in `backend/test/integration/links.repository.e2e-spec.ts`: a duplicate code returns `null` and leaves the first row intact; 10,000 concurrent inserts of generated codes all succeed with distinct codes (SC-004)
+- [ ] T086 Service in `backend/src/links/links.service.ts`: `create` draws a code and retries on a clash, failing with 500 `INTERNAL` after 3 attempts; `resolve` answers not-found without a query for a malformed code. Unit tests in `backend/src/links/links.service.spec.ts` with a fake repository
+- [ ] T087 Remove `sqids` and `SQIDS_ALPHABET` (`env.ts`, `env.spec.ts`, `.env.example`, test setup, `env-file.e2e-spec.ts`); update contract tests for 11-character codes and the frontend route pattern in `frontend/src/App.tsx`; rewrite the short-code sections of `README.md` and `CLAUDE.md`
+
+### Expired links withhold their destination (FR-013)
+
+- [ ] T088 Contract tests in `backend/test/contract/preview.e2e-spec.ts` and `redirect.e2e-spec.ts`: the 410 JSON body is exactly `{ code, status: 'expired', expiresAt }`; neither 410 response contains the original URL
+- [ ] T089 Add `ExpiredLinkResponse` in `backend/src/links/dto/link.response.ts` and return it from the resolve path; mirror the type in `frontend/src/api/links.ts` and render the expired preview without a destination in `frontend/src/components/PreviewCard.tsx`, with tests in `frontend/tests/PreviewCard.test.tsx` and `StatusScreen.test.tsx`
+
+### Unknown-code limit and /64 keying (FR-015, FR-020)
+
+- [ ] T090 [P] Unit tests in `backend/src/common/client-key.spec.ts`: IPv4 unchanged; IPv4-mapped IPv6 reduced to IPv4; IPv6 addresses in one /64 (compressed, expanded, zone-suffixed) share a key; different /64s do not
+- [ ] T091 Implement `backend/src/common/client-key.ts` and use it as the `getTracker` of every throttler in `backend/src/app.module.ts`
+- [ ] T092 [P] Unit tests in `backend/src/links/unknown-code-limiter.spec.ts` with an injected clock: the budget is refused once spent and restored when the window ends; a spent budget refuses hits too; hits return their reservation; concurrent in-flight lookups cannot overrun the budget; `Retry-After` reflects the window; idle clients are swept
+- [ ] T093 Implement `backend/src/links/unknown-code-limiter.ts` and `unknown-code.guard.ts`, configured by `RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES` (default 20) and applied to `GET /:code` and `GET /api/links/:code`; document the variable in `.env.example`, `README.md` and `CLAUDE.md`
+- [ ] T094 Contract tests in `backend/test/contract/unknown-code-limit.e2e-spec.ts`: redirect and preview share one budget; the exhausted budget returns 429 with `Retry-After` for a real code; hits never consume it; another client is unaffected; two addresses in one IPv6 /64 share a budget, two /64s do not
+
+### Verification
+
+- [ ] T095 Re-run the load check (`npm run load -w backend`) with the new codes and record the result in [load-results.md](load-results.md)
+- [ ] T096 Run `npm run check` and `npm test` from a clean checkout and confirm the collected test count grew by the new suites
+
+**Checkpoint**: Codes are unguessable, guessing is bounded per client, and no response
+reveals a destination to someone who does not hold its code
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -219,6 +268,9 @@ codes return 404/410 matching the redirect path.
 - **US3 (Phase 5)**: Depends on Foundational; extends US1's create path and US2's redirect path
 - **US4 (Phase 6)**: Depends on Foundational; independent of US3
 - **Polish (Phase 7)**: Depends on all desired stories being complete
+- **Unguessable codes (Phase 8)**: Depends on Phases 1–7. T082–T087 land together (the
+  schema, repository and service change in step); T088–T089 and T090–T094 are
+  independent of each other and follow T087
 
 ### User Story Dependencies
 
@@ -291,7 +343,7 @@ quickstart scenarios for US1 and US2, and the service is demonstrable.
 ## Notes
 
 - `[P]` means a different file with no incomplete dependency
-- Codes are derived from the identity column, never stored — no `code` column, no collision handling ([research.md §1](research.md))
-- The `IdGenerator` seam lives in `links.repository.ts`; the documented scaling path (LRU → replicas → range allocation → id-range sharding) requires no schema or API change and is **not** built in this feature
+- Phases 1–7 built codes as a Sqids encoding of an identity column; Phase 8 replaces them with random stored codes ([research.md §1](research.md)). Earlier task text is kept as the record of what was built at the time
+- Codes need no coordination between instances; the documented scaling path (LRU → replicas → hash sharding of the code) requires no schema or API change and is **not** built in this feature
 - Private/loopback address rejection is explicitly out of scope for v1 ([research.md §7](research.md))
 - Commit after each task or logical group; one task per change (constitution V)
