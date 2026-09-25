@@ -134,6 +134,9 @@ Each choice is justified, with alternatives considered, in
 - **Preview at `/p/:code`** instead of a bit.ly-style `code+` suffix, which Express
   routes inconsistently (§5).
 - **No frontend router.** Two screens are picked from `window.location.pathname` (§9).
+- **QR code drawn in the browser.** `qrcode.react` renders the new short link as SVG,
+  black on white even in dark mode so scanners can read it; the browser already has the
+  link, so no server endpoint is involved (§12).
 - **Validation at the boundary.** `class-validator` DTOs with the platform `URL` parser;
   only `http`/`https` are accepted (§7).
 - **Tests on a real Postgres.** Testcontainers provisions it, so `npm test` needs only

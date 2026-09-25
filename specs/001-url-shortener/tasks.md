@@ -327,13 +327,13 @@ exactly the short link.
 
 ### Tests for FR-021 ⚠️
 
-- [ ] T122 [US1] Component tests in `frontend/tests/ResultCard.test.tsx`: the QR code is an image named after the short URL, its `viewBox` includes a four-module quiet zone, and it is drawn black on white (FR-021)
+- [X] T122 [US1] Component tests in `frontend/tests/ResultCard.test.tsx`: the QR code is an image named after the short URL, its `viewBox` includes a four-module quiet zone, and it is drawn black on white (FR-021)
 
 ### Implementation for FR-021
 
-- [ ] T123 [US1] Add `qrcode.react` to the frontend workspace and render `QRCodeSVG` for `link.shortUrl` below the short link in `frontend/src/components/ResultCard.tsx`, level `M`, margin 4, fixed black on white (research.md §12)
-- [ ] T124 [US1] Style the QR code in `frontend/src/styles.css` mobile first: full card width capped at 14rem below 36rem, beside the link from 36rem upwards, never wider than its container
-- [ ] T125 [US1] Run the FR-021 manual check in [quickstart.md](quickstart.md#us1--shorten-a-link) and confirm each viewport decodes the QR code to the short link
+- [X] T123 [US1] Add `qrcode.react` to the frontend workspace and render `QRCodeSVG` for `link.shortUrl` below the short link in `frontend/src/components/ResultCard.tsx`, level `M`, margin 4, fixed black on white (research.md §12)
+- [X] T124 [US1] Style the QR code in `frontend/src/styles.css` mobile first: full card width capped at 14rem below 36rem, beside the link from 36rem upwards, never wider than its container
+- [X] T125 [US1] Run the FR-021 manual check in [quickstart.md](quickstart.md#us1--shorten-a-link) and confirm each viewport decodes the QR code to the short link
 
 ---
 

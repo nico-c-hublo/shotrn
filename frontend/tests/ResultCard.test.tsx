@@ -45,6 +45,48 @@ describe('ResultCard', () => {
     expect(screen.getByText(`Expires ${expected}`)).toBeInTheDocument();
   });
 
+  // FR-021
+  it('shows a QR code named after the short url it encodes', () => {
+    render(<ResultCard link={permanent} />);
+    expect(
+      screen.getByRole('img', { name: `QR code for ${permanent.shortUrl}` }),
+    ).toBeInTheDocument();
+  });
+
+  // FR-021: without four blank modules around it, scanners cannot find the code's edges.
+  it('keeps a four-module quiet zone around the QR code', () => {
+    render(<ResultCard link={permanent} />);
+    const svg = screen.getByRole('img', { name: /^QR code/ });
+    const size = Number(svg.getAttribute('viewBox')?.split(' ')[2]);
+    const modules = svg.querySelector('path[fill="#000000"]')?.getAttribute('d') ?? '';
+
+    // Each dark run starts `M<x> <y>h<length>`; runs reaching the right edge use
+    // `M<x>,<y> h<length>`, and those are the ones that would breach the quiet zone.
+    const runs = [...modules.matchAll(/M(\d+)[ ,](\d+) ?h(\d+)/g)].map(([, x, y, length]) => ({
+      x: Number(x),
+      y: Number(y),
+      end: Number(x) + Number(length),
+    }));
+
+    expect(runs.length).toBeGreaterThan(0);
+    for (const run of runs) {
+      expect(run.x).toBeGreaterThanOrEqual(4);
+      expect(run.y).toBeGreaterThanOrEqual(4);
+      expect(run.end).toBeLessThanOrEqual(size - 4);
+      expect(run.y).toBeLessThan(size - 4);
+    }
+  });
+
+  // FR-021: many scanners cannot read a light-on-dark code, so dark mode must not invert it.
+  it('draws the QR code black on white', () => {
+    render(<ResultCard link={permanent} />);
+    const svg = screen.getByRole('img', { name: /^QR code/ });
+    const [background, foreground] = svg.querySelectorAll('path');
+
+    expect(background).toHaveAttribute('fill', '#FFFFFF');
+    expect(foreground).toHaveAttribute('fill', '#000000');
+  });
+
   it('links to the preview so the destination can be checked first', () => {
     render(<ResultCard link={permanent} />);
     expect(screen.getByRole('link', { name: permanent.previewUrl })).toHaveAttribute(

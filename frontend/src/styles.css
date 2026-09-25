@@ -96,6 +96,51 @@ button[disabled] {
   margin: 0 0 0.75rem;
 }
 
+/* Mobile first: link, QR code, then details in one column. From 36rem the QR code moves
+   beside the link so the whole result stays above the fold on landscape phones. */
+.result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'url' 'qr' 'details';
+}
+
+.result .short-url {
+  grid-area: url;
+}
+
+.result-details {
+  grid-area: details;
+}
+
+/* The SVG's width/height attributes are only a fallback: the viewBox lets CSS size it
+   to the container while every module stays square. */
+.qr {
+  grid-area: qr;
+  justify-self: center;
+  width: min(100%, 14rem);
+  height: auto;
+  aspect-ratio: 1;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+}
+
+@media (min-width: 36rem) {
+  .result {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'url qr'
+      'details qr';
+    grid-template-rows: auto 1fr;
+    column-gap: 1.5rem;
+  }
+
+  .qr {
+    align-self: start;
+    width: 10rem;
+    margin-bottom: 0;
+  }
+}
+
 .expiry,
 .preview-hint {
   color: var(--muted);
