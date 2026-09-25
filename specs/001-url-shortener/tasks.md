@@ -291,7 +291,7 @@ merged without CI.
 - [X] T110 Add `eslint-plugin-react-hooks` for the frontend (rules of hooks, exhaustive deps); justify the dependency in research §8
 - [X] T111 Enable `noUncheckedIndexedAccess` and `noImplicitOverride` in both workspaces and fix the findings
 - [X] T112 Remove `--passWithNoTests` from both test runners, so a broken test glob fails instead of passing; update the bisect notes in `CLAUDE.md`
-- [ ] T113 Add `.github/dependabot.yml` for npm and GitHub Actions, weekly and grouped
+- [X] T113 Add `.github/dependabot.yml` for npm and GitHub Actions, weekly and grouped
 - [ ] T114 Confirm the workflow runs on the pull request for this phase
 
 ---

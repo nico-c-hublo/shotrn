@@ -1,0 +1,37 @@
+# Constitution III: dependencies are pinned by the lockfile and audited. Dependabot keeps
+# them current without anyone having to remember, and CI gates every update it proposes.
+version: 2
+updates:
+  - package-ecosystem: npm
+    # One lockfile at the root covers both workspaces.
+    directory: /
+    # Explicit: the repository's default branch is not the integration branch.
+    target-branch: master
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    # Minor and patch updates arrive as one pull request per group; a major version gets
+    # its own, since it is the kind that breaks things.
+    groups:
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: master
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    # Workflow actions are pinned to commit SHAs; Dependabot updates the SHA and the
+    # version comment together.
+    groups:
+      actions:
+        patterns: ['*']
