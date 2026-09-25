@@ -72,7 +72,7 @@ describe('ShortenForm', () => {
     await user.click(screen.getByRole('button', { name: 'Shorten' }));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(link));
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const body = JSON.parse(fetchMock.mock.calls[0]?.[1].body);
     expect(body).toEqual({ url: 'https://example.com/', expiry: '1d' });
   });
 
@@ -84,6 +84,6 @@ describe('ShortenForm', () => {
     await user.click(screen.getByRole('button', { name: 'Shorten' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ url: 'https://example.com/' });
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body)).toEqual({ url: 'https://example.com/' });
   });
 });

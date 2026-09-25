@@ -53,7 +53,7 @@ describe('GET /:code', () => {
     const code = await create(original);
 
     const res = await request(server()).get(`/${code}`).expect(301);
-    expect(decodeURI(res.headers.location)).toBe(original);
+    expect(decodeURI(res.headers.location ?? '')).toBe(original);
 
     const preview = await request(server()).get(`/api/links/${code}`).expect(200);
     expect(preview.body.originalUrl).toBe(original);

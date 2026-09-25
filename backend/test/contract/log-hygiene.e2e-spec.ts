@@ -64,11 +64,12 @@ describe('logging a failed request', () => {
       await withTableHidden(() =>
         request(server()).post('/api/links').send({ url: destination }).expect(500),
       );
-      drawnCode = insert.mock.calls[0][0].code; // read before mockRestore() clears it
+      drawnCode = insert.mock.calls[0]?.[0].code ?? ''; // read before mockRestore() clears it
     } finally {
       insert.mockRestore();
     }
 
+    expect(drawnCode).toMatch(/^[0-9A-Za-z]{13}$/);
     expect(logged).not.toContain(drawnCode);
     expect(logged).not.toContain('private.example');
     expect(logged).toContain('POST /api/links failed');
