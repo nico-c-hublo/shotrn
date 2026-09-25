@@ -6,11 +6,12 @@ All `NEEDS CLARIFICATION` items from the Technical Context are resolved below.
 
 ## 1. Short-code generation
 
-> **Amended 2026-09-25** (constitution 1.1.0). The original decision, a Sqids encoding
-> of the identity column, is kept under *Alternatives considered* with the reason it
-> was reversed.
+> **Amended 2026-09-25** (constitution 1.1.0, then 1.2.0). The original decision, a
+> Sqids encoding of the identity column, is kept under *Alternatives considered* with
+> the reason it was reversed. Codes were first 11 characters backed by an
+> unknown-code budget, then 13 characters without one (§2, §6).
 
-**Decision**: Each code is 11 characters drawn independently from `[0-9A-Za-z]` with
+**Decision**: Each code is 13 characters drawn independently from `[0-9A-Za-z]` with
 `crypto.randomInt(62)` (a CSPRNG with rejection sampling, so no modulo bias). The code
 is **stored** and is the table's primary key. Creation inserts with
 `ON CONFLICT (code) DO NOTHING RETURNING *`; an empty result means the code was taken,
@@ -22,11 +23,11 @@ primary-key lookup on the code.
   not a counter, not a key, not an alphabet. Leaking configuration, logs or the source
   gives an attacker nothing to compute. Only the database itself reveals codes, and
   the database holds the destinations anyway.
-- **Guessing is bounded by entropy, which is a length choice.** 62¹¹ ≈ 5.2×10¹⁹
-  (~65.5 bits), above the 64-bit floor OWASP sets for session identifiers, which are
-  the closest analogue: a bearer secret in a URL. See §2 for the numbers.
+- **Guessing is bounded by entropy, which is a length choice.** 62¹³ ≈ 2.0×10²³
+  (~77.4 bits), well above the 64-bit floor OWASP sets for session identifiers, which
+  are the closest analogue: a bearer secret in a URL. See §2 for the numbers.
 - **Collisions are a non-issue, not merely rare.** The chance that a new code is
-  already taken is N / 62¹¹: about 2×10⁻¹³ with 10 million links. The same figure is
+  already taken is N / 62¹³: about 5×10⁻¹⁷ with 10 million links. The same figure is
   an attacker's chance per guess, so a code space where retries are ever observed is
   one that is too small for FR-007. Three consecutive collisions mean the random
   source is broken, and the service fails the request instead of looping.
@@ -34,7 +35,7 @@ primary-key lookup on the code.
   no aborted transaction, no error-code parsing, and concurrent inserts of the same
   code are resolved by the unique index itself (SC-004).
 - **Cost.** A text key inserted at random positions has worse insert locality than
-  an ever-increasing `BIGINT`, and each row carries ~12 more bytes. At the 50
+  an ever-increasing `BIGINT`, and each row carries ~14 more bytes. At the 50
   creates/s target this is invisible; it would matter only at write volumes several
   orders of magnitude higher, where the index would first be partitioned by hash.
   Creation latency is not a constraint (the product owner accepts up to 1 s).
@@ -65,31 +66,48 @@ sharded by hash of the code.
 
 ## 2. Code length and alphabet
 
-**Decision**: 11 characters, `[0-9A-Za-z]`, fixed length, case-sensitive. The column
-uses `COLLATE "C"` and a `CHECK (code ~ '^[0-9A-Za-z]{11}$')`.
+**Decision** (amended 2026-09-25, constitution 1.2.0): 13 characters, `[0-9A-Za-z]`,
+fixed length, case-sensitive. The column uses `COLLATE "C"` and a
+`CHECK (code ~ '^[0-9A-Za-z]{13}$')`.
 
 **Rationale**:
-- Expected links found by guessing = guesses × N / 62^L. With 1 million links:
+- Expected links found by guessing = guesses × N / 62^L. A client may look codes up at
+  the lookup limit (600 a minute on each of the redirect and preview routes, §6), so
+  about 1.7 million guesses a day. With 1 million links:
 
-  | Length | One IP at the redirect limit (600/min) | 10k IPs at the redirect limit | 10k IPs at the unknown-code limit (§6) |
-  |---|---|---|---|
-  | 6 | 15/day | 152,000/day | 507/day |
-  | 8 | 0.004/day | 40/day | 0.13/day |
-  | 10 | ~0 | 0.01/day | ~0 |
-  | **11** | ~0 | 0.0002/day | ~6×10⁻⁷/day |
+  | Length | One client | 10,000 clients |
+  |---|---|---|
+  | 6 | 30/day | 304,000/day |
+  | 8 | 0.008/day | 79/day |
+  | 10 | 2×10⁻⁶/day | 0.02/day |
+  | 11 | 3×10⁻⁸/day | 3×10⁻⁴/day |
+  | 12 | 5×10⁻¹⁰/day | 5×10⁻⁶/day |
+  | **13** | 9×10⁻¹²/day | 9×10⁻⁸/day |
 
-  At 11 characters and 10 million links, 10,000 coordinated clients held to the
-  unknown-code limit find about 0.002 links per year (SC-009).
+  At 13 characters and 10 million links, 10,000 coordinated clients find about
+  0.0003 links a year, one every ~3,200 years (SC-009).
+- **Why 13 and not 11 with a guessing budget.** The first version used 11 characters
+  plus a budget of 20 unknown-code lookups per client per 10 minutes (§6), which cut
+  each client's guesses by ~600× and gave ~0.002 links a year in the scenario above.
+  Two more characters multiply the code space by 3,844, so 13 characters alone are
+  ~6× stronger, and they cost nobody anything: the budget could only work by refusing
+  real links too, which let one user on a shared IPv4 address lock everyone else on it
+  out. Both defences scale the same way with attacker size, so the ratio holds for
+  larger botnets. 14 characters (one link every ~200,000 years) was considered;
+  beyond 13, guessing stops being the realistic way to find a link, next to leaks
+  through chat logs, browser history or `Referer` headers.
+- **Length.** A full link on a short domain stays under 30 characters
+  (`https://sho.rt/` + 13 = 28), as SC-008 intends.
 - **Fixed length** keeps the format check a single regular expression and makes every
   reserved first path segment (`api`, `p`, `assets`) impossible to shadow, because
-  none is 11 characters long. The Sqids blocklist is no longer needed.
+  none is 13 characters long. The Sqids blocklist is no longer needed.
 - **`COLLATE "C"`** compares strings byte by byte. The database's default collation
   follows language rules (for example `en_US.UTF-8`), which are slower to compare and
   are not a stable ordering to build a key on: an operating-system locale update can
   change it and silently corrupt a text index. The codes are ASCII identifiers, not
   words, so byte order is the only meaning they have. Equality is case-sensitive under
   both collations, as FR-006 requires.
-- No profanity filter: the spec does not require one. At 11 random characters, a
+- No profanity filter: the spec does not require one. At 13 random characters, a
   recognisable word is unlikely and easy to add later as a rejected draw.
 
 **Alternatives considered**: A longer alphabet (adding `-` and `_`, 64 characters)
@@ -143,9 +161,7 @@ reveals only that such a link existed. A separate type, rather than `LinkRespons
 **Decision**: `@nestjs/throttler`, keyed by client (`trust proxy` enabled for the
 HTTPS proxy), in-memory store.
 - `POST /api/links`: 60 per hour per client.
-- `GET /:code` and `GET /api/links/:code`: 600 per minute per client.
-- Unknown-code lookups on those two routes, counted together: 20 per 10 minutes per
-  client (FR-020), see below.
+- `GET /:code` and `GET /api/links/:code`: 600 per minute per client, each (FR-020).
 - Exceeding → `429` with `{ error: { code: 'RATE_LIMITED', message } }` and
   `Retry-After`.
 
@@ -153,35 +169,30 @@ HTTPS proxy), in-memory store.
 address (`::ffff:a.b.c.d`) as its IPv4 form; any other IPv6 address as its /64 prefix.
 A single subscriber is routinely delegated a whole /64 (2⁶⁴ addresses), so keying on
 the full address would let one client rotate addresses and escape every limit. The
-key applies to all three limits, since the same rotation defeats the create limit.
+key applies to every limit, since the same rotation defeats the create limit.
 `@nestjs/throttler` has keyed this way by default since 6.7 (`normalizeIp`), so the
-dependency floor is raised to 6.7, the prefix is set explicitly so a changed default
-cannot loosen it, and the unknown-code limiter reuses the same function. No address
-parsing is hand-rolled.
+dependency floor is raised to 6.7 and the prefix is set explicitly so a changed default
+cannot loosen it. No address parsing is hand-rolled.
 
-**Unknown-code limit** (amended 2026-09-25): the redirect limit alone allows 864,000
-guesses per client per day, which §2 shows is the dominant term. Real visitors almost
-never open 20 non-existent codes in 10 minutes, so misses get their own, much tighter
-budget, and a client that exhausts it is refused *every* lookup, hits included, until
-the window ends. Otherwise the guesses would keep coming and only the refusals would
-stop.
-- Implemented as a small guard rather than a third `@nestjs/throttler` throttler: the
-  throttler counts every request before the handler runs, but a miss is known only
-  after the lookup.
-- In-flight lookups count against the budget until they settle, and a hit refunds its
-  reservation. Without that, a client could fire 600 concurrent guesses that all pass
-  the check before any of them is recorded as a miss. A lookup that *could* overrun the
-  budget waits for the in-flight ones to settle instead of being refused. The first
-  version refused it, and the load check caught the effect: 50 concurrent hits from one
-  address turned into 429s. Waiting costs a real visitor the length of one lookup, and
-  the redirect throttler already bounds how many requests a client can have queued.
-- A browser visit to an unknown code costs one miss. The redirect path states the
-  outcome in the page it serves (`<meta name="shotrn-link-status">`, plus
-  `shotrn-link-expires-at` for a 410), so the SPA's status screen does not look the code
-  up again. It did at first, which charged every typo twice (code review of PR #3).
-- Only well-formed codes are charged. A malformed path (`/favicon.ico`, `/robots.txt`)
-  is answered 404 without a query, so it reveals nothing; charging it let a browser's
-  own background requests lock a visitor out (code review of PR #3).
+**Unknown-code budget: added, then removed** (2026-09-25). Constitution 1.1.0 added a
+separate budget of 20 unknown-code lookups per client per 10 minutes, with 11-character
+codes. Constitution 1.2.0 removed it in favour of 13-character codes (§2). The record:
+- *It had to refuse real links too.* The server only knows a code is real after
+  looking it up. Letting hits through once the budget was spent would answer 301 for
+  real codes and 429 for the rest, which is exactly the oracle a guesser wants. So a
+  spent budget refused every lookup, and anyone sharing a client's IPv4 address
+  (carrier-grade or office NAT) could be locked out of every link by one user who
+  opened 20 non-existent codes.
+- *It was intricate.* A miss is known only after the lookup, so it was a guard with
+  in-flight reservations, waiters and a sweep, not a throttler. The load check and a
+  code review found four defects in it: concurrent hits refused, a reservation leaked
+  by a client that disconnected while waiting, `/favicon.ico` charged as a guess, and
+  every typo charged twice.
+- *Length did better.* Two extra characters give ~6× more guessing resistance than the
+  budget, with no lockout and no code.
+
+The lookup limit that remains must still answer the same way whether or not a code
+exists (FR-020): the throttler refuses before the lookup, so it does.
 
 **Rationale**: Spec FR-015 + assumption (60/h). In-memory store is per-instance; with N
 instances the effective limit is N× — acceptable for v1 abuse control and avoids a
@@ -191,6 +202,8 @@ not trip it, low enough to make enumeration slow.
 Production limits are deliberately below the SC-003 load target (1,000 redirects/s):
 the load check raises `RATE_LIMIT_REDIRECT_PER_MINUTE` via environment so it measures
 the service rather than the limiter (tasks T076). Production abuse control is unchanged.
+The §2 figures assume this limit: without it a client is bounded only by throughput
+(~6,000 lookups/s measured), about 300× more guesses.
 
 **Alternatives considered**: Redis-backed throttler storage — deferred: extra stateful
 infrastructure with its own durability story, for a limit that is acceptable per
@@ -225,7 +238,7 @@ sits next to internal services.
 | Dependency | Why | Simpler alternative rejected because |
 |---|---|---|
 | NestJS | User-mandated; DI, validation pipe, throttler, exception filters out of the box | — |
-| *(none for codes)* | `node:crypto` `randomInt` draws each character | `sqids` was removed with the move to random codes (§1); `nanoid` would add a dependency to replace an 11-iteration loop |
+| *(none for codes)* | `node:crypto` `randomInt` draws each character | `sqids` was removed with the move to random codes (§1); `nanoid` would add a dependency to replace a 13-iteration loop |
 | Drizzle ORM + drizzle-kit | Typed schema, generated SQL migrations (constitution: versioned migrations) | Raw `pg` + hand-written migrations needs a bespoke migration runner and untyped rows; more code to own than Drizzle's ~zero-runtime layer. Prisma/TypeORM rejected as heavier (codegen/decorator magic) for one table. |
 | `pg` | Postgres driver (Drizzle peer) | — |
 | `class-validator` + `class-transformer` | Nest-idiomatic DTO validation with `whitelist` stripping | Zod pipe is comparable; class-validator chosen for zero custom pipe code and Nest docs alignment |

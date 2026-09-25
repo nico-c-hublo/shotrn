@@ -2,9 +2,10 @@
 
 **Branch**: `001-url-shortener` | **Date**: 2026-09-22 | **Spec**: [spec.md](spec.md)
 
-**Amended**: 2026-09-25 — random stored codes replace Sqids; unknown-code lookup limit;
-clients keyed per IPv6 /64; expired links withhold their destination (constitution
-1.1.0). Research §1, §2, §5 and §6 carry the reasoning.
+**Amended**: 2026-09-25 — random stored 13-character codes replace Sqids; clients keyed
+per IPv6 /64; expired links withhold their destination (constitution 1.1.0, 1.2.0). An
+unknown-code budget was added and then removed in favour of code length. Research §1,
+§2, §5 and §6 carry the reasoning.
 
 **Input**: Feature specification from `/specs/001-url-shortener/spec.md`
 
@@ -13,11 +14,11 @@ clients keyed per IPv6 /64; expired links withhold their destination (constituti
 Anonymous visitors submit an `http`/`https` URL and receive a short, unguessable code
 that redirects to it; links may carry an expiry after which they show an "expired" page.
 The backend is a single NestJS service on PostgreSQL. Short codes are **random and
-stored**: 11 characters drawn with `crypto.randomInt`, used as the `links` primary key.
+stored**: 13 characters drawn with `crypto.randomInt`, used as the `links` primary key.
 A clash is reported by `ON CONFLICT DO NOTHING` and answered with a fresh draw. No
 counter, key or alphabet exists whose disclosure would reveal codes, so the only way to
-find a link is to guess, and guessing is bounded by code length and a tight per-client
-limit on unknown-code lookups. The frontend is a small React + TypeScript SPA (Vite)
+find a link is to guess, and guessing is bounded by code length (~77 bits) and the
+per-client lookup limit. The frontend is a small React + TypeScript SPA (Vite)
 served by the same service in production.
 
 ## Technical Context
@@ -46,17 +47,17 @@ p99 < 300 ms end-to-end (SC-002). Redirect path = format check (pure CPU) + one 
 lookup. Creation latency is not constrained beyond that (up to 1 s is acceptable).
 
 **Constraints**:
-- Short code exactly 11 chars, alphanumeric, case-sensitive (FR-006)
-- Codes unguessable (FR-007): CSPRNG, ~65.5 bits, not derived from anything
-- Unknown-code lookups limited per client and IPv6 /64 (FR-020)
+- Short code exactly 13 chars, alphanumeric, case-sensitive (FR-006)
+- Codes unguessable (FR-007): CSPRNG, ~77.4 bits, not derived from anything
+- Lookups limited per client, keyed per IPv4 address or IPv6 /64 (FR-020)
 - URL ≤ 2,048 chars, `http`/`https` only, no self-reference (FR-002..004)
 - Links survive restarts (FR-014) → Postgres is the only source of truth, no
   in-memory state on the write path
 - No deduplication (FR-018)
 
 **Scale/Scope**: 4 user stories, 4 HTTP routes, 1 table, ~3 screens (form/result,
-preview, not-found/expired). Code space: 62¹¹ ≈ 5.2×10¹⁹; the chance a new code
-collides is N / 62¹¹ (2×10⁻¹³ at 10 million links).
+preview, not-found/expired). Code space: 62¹³ ≈ 2.0×10²³; the chance a new code
+collides is N / 62¹³ (5×10⁻¹⁷ at 10 million links).
 
 ## Constitution Check
 
@@ -65,13 +66,13 @@ collides is N / 62¹¹ (2×10⁻¹³ at 10 million links).
 | Principle | Gate | Status |
 |---|---|---|
 | I. Simplicity First | Every dependency justified with rejected simpler alternative | PASS — see [research.md](research.md) §Dependencies; no plugin/adapter layers; one table; `sqids` removed, codes drawn with `node:crypto` |
-| I. Simplicity First | No speculative generality | PASS — the code generator is injected only so tests can force a collision; the unknown-code limiter is one class with one caller |
+| I. Simplicity First | No speculative generality | PASS — the code generator is injected only so tests can force a collision |
 | II. Readable, Typed Code | `strict: true`, lint + format enforced by tooling | PASS — root ESLint (typescript-eslint) + Prettier, `npm run check` gates type/lint/format |
 | III. Security by Default | Input validated at boundary with explicit schema | PASS — `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })` + custom `IsHttpUrl` validator using platform `URL` parser |
 | III. Security by Default | Scheme allow-list `http`/`https` | PASS — enforced in `url-validation.ts`, negative tests required |
 | III. Security by Default | Secrets via env, never logged | PASS — `DATABASE_URL` from env, validated at boot, redacted in logs; codes need no secret at all |
-| III. Security by Default | Codes are bearer secrets (1.1.0) | PASS — 11 characters from `crypto.randomInt`, ~65.5 bits, not derived from any counter or key (research §1–2) |
-| III. Security by Default | Unknown-code lookups limited per client and /64 (1.1.0) | PASS — unknown-code guard, 20 per 10 min, shared by redirect and preview; all limits keyed per IPv4 address or IPv6 /64 (research §6) |
+| III. Security by Default | Codes are bearer secrets, ≥ 77 bits (1.2.0) | PASS — 13 characters from `crypto.randomInt`, ~77.4 bits, not derived from any counter or key (research §1–2) |
+| III. Security by Default | Every lookup route rate limited per client and /64 (1.2.0) | PASS — redirect-tier throttler on `/:code` and `/api/links/:code`, 600/min each; all limits keyed per IPv4 address or IPv6 /64 (research §6) |
 | III. Security by Default | Expired links withhold their destination (1.1.0) | PASS — 410 body is `ExpiredLinkResponse` (`code`, `status`, `expiresAt`) (research §5) |
 | III. Security by Default | Rate limit on public writes; security headers | PASS — `@nestjs/throttler` on create (60/h/client) and redirect (600/min/client); `helmet` |
 | III. Security by Default | Lockfile + audit | PASS — `package-lock.json` committed; `npm audit --audit-level=high` in CI gate |
@@ -130,9 +131,6 @@ backend/
 │   │   ├── short-code.ts           # generateCode() with crypto.randomInt, isWellFormedCode()
 │   │   ├── short-code.spec.ts      # unit: format, alphabet coverage, reserved segments
 │   │   ├── code-generator.provider.ts  # DI token so tests can force a collision
-│   │   ├── unknown-code-limiter.ts # per-client miss budget with in-flight reservations
-│   │   ├── unknown-code-limiter.spec.ts
-│   │   ├── unknown-code.guard.ts   # applies the limiter to GET /:code and /api/links/:code
 │   │   ├── url-validation.ts       # IsHttpUrl validator (platform URL parser)
 │   │   ├── expiry.ts               # ExpiryOption → Date | null
 │   │   ├── expiry.spec.ts          # unit: option → offset mapping
@@ -141,15 +139,13 @@ backend/
 │   │       └── link.response.ts
 │   └── common/
 │       ├── http-exception.filter.ts  # stable { error: { code, message } } shape
-│       ├── errors.ts                 # domain error classes + codes
-│       └── client-key.ts             # IPv4 address or IPv6 /64, via the throttler's normalizeIp
+│       └── errors.ts                 # domain error classes + codes
 ├── test/
 │   ├── contract/            # supertest against full Nest app + Testcontainers PG
 │   │   ├── create-link.e2e-spec.ts
 │   │   ├── redirect.e2e-spec.ts
 │   │   ├── preview.e2e-spec.ts
-│   │   ├── rate-limit.e2e-spec.ts
-│   │   └── unknown-code-limit.e2e-spec.ts  # FR-020: shared budget, /64 keying, hits refunded
+│   │   └── rate-limit.e2e-spec.ts   # FR-015/FR-020: isolation, /64 keying
 │   ├── integration/
 │   │   └── links.repository.e2e-spec.ts
 │   └── setup/               # testcontainer lifecycle, migration runner
@@ -187,7 +183,7 @@ under `/assets/**`, and `PagesController` sends `index.html` for `/` and `/p/:co
 Static middleware cannot serve an index file for a parameterised path, so a controller
 owns those two routes; `@nestjs/serve-static` would add a dependency without changing
 that. Every other single-segment path is a redirect candidate;
-no reserved segment (`api`, `p`, `assets`) is 11 characters long, so no code can
+no reserved segment (`api`, `p`, `assets`) is 13 characters long, so no code can
 shadow one (research §2). No client-side router: two screens are selected from
 `location.pathname` (simplicity — a router dependency for two routes is unjustified).
 

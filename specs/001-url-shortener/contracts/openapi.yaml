@@ -7,9 +7,10 @@ info:
     redirect and page routes live at the root. All error responses share the
     ErrorEnvelope shape and never expose internal details.
 
-    2.0.0 (breaking): short codes are exactly 11 random characters, and a 410 body
-    is an ExpiredLinkResponse that no longer carries the original URL. Lookups of
-    unknown codes are limited per client (FR-020). Nothing was deployed under 1.x.
+    2.0.0 (breaking): short codes are exactly 13 random characters, and a 410 body
+    is an ExpiredLinkResponse that no longer carries the original URL. Lookups are
+    limited per client, keyed per IPv4 address or IPv6 /64 (FR-020). Nothing was
+    deployed under 1.x.
 servers:
   - url: "{baseUrl}"
     variables:
@@ -131,12 +132,11 @@ components:
       in: path
       required: true
       description: >
-        Case-sensitive short code, exactly 11 alphanumeric characters. Any other
-        value is answered 404 without a lookup and is not charged against the
-        unknown-code limit.
+        Case-sensitive short code, exactly 13 alphanumeric characters. Any other
+        value is answered 404 without a lookup.
       schema:
         type: string
-        pattern: "^[0-9A-Za-z]{11}$"
+        pattern: "^[0-9A-Za-z]{13}$"
 
   responses:
     NotFound:
@@ -155,11 +155,9 @@ components:
           example: { error: { code: RATE_LIMITED, message: "Too many requests, slow down" } }
     LookupRateLimited:
       description: >
-        Too many lookups from this client: either the redirect-tier limit (600 per
-        minute) or the unknown-code limit (20 per 10 minutes, shared by /{code} and
-        /api/links/{code}). Once the unknown-code limit is reached, every lookup from
-        the client is refused until the window ends, including codes that exist.
-        Clients are keyed by IPv4 address or IPv6 /64.
+        Too many lookups from this client (600 per minute on each lookup route).
+        Refused before the lookup, so the answer is the same whether or not the code
+        exists. Clients are keyed by IPv4 address or IPv6 /64.
       headers:
         Retry-After: { schema: { type: integer } }
       content:
@@ -190,9 +188,9 @@ components:
       type: object
       required: [code, shortUrl, previewUrl, originalUrl, createdAt, expiresAt, status]
       properties:
-        code: { type: string, example: "k9Xz2QmB7rT" }
-        shortUrl: { type: string, format: uri, example: "https://sho.rt/k9Xz2QmB7rT" }
-        previewUrl: { type: string, format: uri, example: "https://sho.rt/p/k9Xz2QmB7rT" }
+        code: { type: string, example: "k9Xz2QmB7rTq4" }
+        shortUrl: { type: string, format: uri, example: "https://sho.rt/k9Xz2QmB7rTq4" }
+        previewUrl: { type: string, format: uri, example: "https://sho.rt/p/k9Xz2QmB7rTq4" }
         originalUrl: { type: string, format: uri }
         createdAt: { type: string, format: date-time }
         expiresAt:
@@ -210,7 +208,7 @@ components:
       required: [code, status, expiresAt]
       description: Deliberately omits originalUrl, createdAt, shortUrl and previewUrl.
       properties:
-        code: { type: string, example: "k9Xz2QmB7rT" }
+        code: { type: string, example: "k9Xz2QmB7rTq4" }
         status: { type: string, const: expired }
         expiresAt: { type: string, format: date-time }
 

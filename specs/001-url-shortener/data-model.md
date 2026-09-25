@@ -9,7 +9,7 @@ One table, keyed by the short code. The code is random and stored (see
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| `code` | `TEXT COLLATE "C"` | PK, `CHECK (code ~ '^[0-9A-Za-z]{11}$')` | 11 CSPRNG-drawn characters; the unique index resolves concurrent duplicates. Byte-order collation: see research §2 |
+| `code` | `TEXT COLLATE "C"` | PK, `CHECK (code ~ '^[0-9A-Za-z]{13}$')` | 13 CSPRNG-drawn characters; the unique index resolves concurrent duplicates. Byte-order collation: see research §2 |
 | `original_url` | `TEXT` | `NOT NULL`, `CHECK (char_length(original_url) BETWEEN 1 AND 2048)` | Stored exactly as submitted after trim (FR-008); scheme allow-list enforced at API boundary, and by `CHECK (original_url ~* '^https?://')` (case-insensitive: an uppercase scheme is stored verbatim per FR-008) as defence in depth |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT now()` | Server clock |
 | `expires_at` | `TIMESTAMPTZ` | `NULL` | `NULL` = permanent. `CHECK (expires_at IS NULL OR expires_at > created_at)` |
@@ -26,7 +26,7 @@ v1 never modifies a link.
 ## Domain types (backend)
 
 ```ts
-type ShortCode = string;              // [0-9A-Za-z]{11}, drawn with crypto.randomInt
+type ShortCode = string;              // [0-9A-Za-z]{13}, drawn with crypto.randomInt
 type ExpiryOption = '1h' | '1d' | '7d' | '30d' | 'never';
 
 interface Link {
@@ -77,9 +77,9 @@ There is no delete, disable, or edit transition in v1.
 
 | Input | Outcome | HTTP |
 |---|---|---|
-| Client over its unknown-code budget | refused before lookup | 429 |
-| Not 11 characters of `[0-9A-Za-z]` | not found, no query issued; not charged (it reveals nothing) | 404 |
-| Well-formed, no row | not found; counts as a miss | 404 |
+| Client over the lookup limit (FR-020) | refused before lookup, whether or not the code exists | 429 |
+| Not 13 characters of `[0-9A-Za-z]` | not found, no query issued | 404 |
+| Well-formed, no row | not found | 404 |
 | Row found, `status = active` | redirect (or preview JSON `LinkResponse`) | 301 (permanent) / 302 (temporary); preview 200 |
 | Row found, `status = expired` | expired page (or preview JSON `ExpiredLinkResponse`: `code`, `status`, `expiresAt`; never `originalUrl`) | 410 |
 
@@ -87,13 +87,19 @@ There is no delete, disable, or edit transition in v1.
 
 ```text
 repeat up to 3 times:
-  code ← 11 × CODE_CHARS[crypto.randomInt(62)]
+  code ← 13 × CODE_CHARS[crypto.randomInt(62)]
   INSERT … VALUES (code, …) ON CONFLICT (code) DO NOTHING RETURNING *
   a row came back → done
-fail the request (500): three collisions in a 5.2×10¹⁹ space mean a broken random source
+fail the request (500): three collisions in a 2.0×10²³ space mean a broken random source
 ```
 
-## Migration from the Sqids schema
+## Migrations
+
+`0003_code_length_13.sql` moves the `code_format` CHECK from 11 to 13 characters. It
+deletes any 11-character rows first: those can only exist in a database that applied
+0002 from the unmerged branch, and the format check makes them unreachable anyway.
+
+### From the Sqids schema
 
 `0002_random_codes.sql` drops the identity-keyed table and creates the code-keyed one.
 No deployment exists, so there is no data to carry over, and it could not be carried

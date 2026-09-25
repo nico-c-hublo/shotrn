@@ -29,7 +29,6 @@ Environment variables (all validated at boot; missing/invalid ⇒ process exits)
 | `PORT` | `3000` | |
 | `RATE_LIMIT_CREATE_PER_HOUR` | `60` | FR-015 |
 | `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600` | |
-| `RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES` | `20` | FR-020; shared by `/:code` and `/api/links/:code` |
 
 ## Run
 
@@ -58,7 +57,7 @@ Replace `$B` with your `BASE_URL`.
 ```bash
 curl -s -X POST $B/api/links -H 'content-type: application/json' \
   -d '{"url":"https://example.com/very/long/path?x=1#frag"}'
-# expect 201, body with code (11 chars), shortUrl, expiresAt: null, status: active
+# expect 201, body with code (13 chars), shortUrl, expiresAt: null, status: active
 
 curl -s -X POST $B/api/links -H 'content-type: application/json' -d '{"url":"javascript:alert(1)"}'
 # expect 400 { error: { code: INVALID_URL, message mentions http/https } }
@@ -78,7 +77,7 @@ curl -s -X POST $B/api/links -H 'content-type: application/json' -d "{\"url\":\"
 curl -si $B/<code> | head -5
 # expect 301, Location: https://example.com/very/long/path?x=1#frag, Cache-Control: public, max-age=86400
 
-curl -si $B/zzzzzzzzzzz | head -1   # expect 404 (HTML page, no Location header)
+curl -si $B/zzzzzzzzzzzzz | head -1 # expect 404 (HTML page, no Location header)
 curl -si $B/<CODE-in-other-case>    # expect 404 — codes are case-sensitive
 ```
 
@@ -98,7 +97,7 @@ curl -s $B/api/links/<code>         # expect 410 { code, status: expired, expire
 ```bash
 curl -s $B/api/links/<code>          # 200 JSON with originalUrl, createdAt, expiresAt, status
 open $B/p/<code>                     # page shows destination without redirecting
-curl -s -o /dev/null -w '%{http_code}' $B/api/links/zzzzzzzzzzz   # 404
+curl -s -o /dev/null -w '%{http_code}' $B/api/links/zzzzzzzzzzzzz   # 404
 ```
 
 ### Rate limiting (FR-015)
@@ -109,12 +108,11 @@ for i in $(seq 1 61); do curl -s -o /dev/null -w '%{http_code}\n' -X POST $B/api
 # expect 60× 201 and 1× 429 (with Retry-After); redirects still work meanwhile
 ```
 
-### Unknown-code limit (FR-020)
+### Lookup limit (FR-020)
 
 ```bash
-for i in $(seq 1 21); do curl -s -o /dev/null -w '%{http_code}\n' $B/zzzzzzzzz$(printf %02d $i); done | sort | uniq -c
-# expect 20× 404 and 1× 429 (Retry-After up to 600)
-curl -si $B/<real-code> | head -1   # expect 429 too: the budget blocks every lookup, hits included
+for i in $(seq 1 601); do curl -s -o /dev/null -w '%{http_code}\n' $B/zzzzzzzzzzz$(printf %02d $((i % 100))); done | sort | uniq -c
+# expect 600× 404 and 1× 429 (Retry-After: 60); unknown codes never lock a visitor out beyond that window
 ```
 
 ### Durability (FR-014)
@@ -137,7 +135,7 @@ from the plan's structure.
 | FR-003 | same | rejects 2049-char URL, accepts 2048-char URL; message contains "2048" |
 | FR-004 | same | rejects URL whose host equals BASE_URL host |
 | FR-005, SC-004 | `test/integration/links.repository.e2e-spec.ts` + `src/links/links.service.spec.ts` | 10,000 concurrent creations yield 10,000 distinct codes; a duplicate code is refused without overwriting; a clash is answered with a fresh draw |
-| FR-006, SC-008 | `src/links/short-code.spec.ts` | generated codes match `^[0-9A-Za-z]{11}$`; every alphabet character reachable at every position |
+| FR-006, SC-008 | `src/links/short-code.spec.ts` | generated codes match `^[0-9A-Za-z]{13}$`; every alphabet character reachable at every position |
 | FR-007 | `src/links/short-code.spec.ts` + `test/contract/create-link.e2e-spec.ts` | codes come from `crypto.randomInt`, not from any counter; no configuration value reproduces them |
 | FR-008 | `test/contract/redirect.e2e-spec.ts` | Location equals original incl. query and fragment; IDN and percent-encoded paths round-trip |
 | FR-009 | same | unknown code → 404, no Location; malformed code → 404 without a query |
@@ -151,7 +149,7 @@ from the plan's structure.
 | FR-017 | `test/contract/*.e2e-spec.ts` | forced repository failure → 500 `{ error: { code: INTERNAL } }` with no stack or SQL in body |
 | FR-018 | `test/contract/create-link.e2e-spec.ts` | posting the same URL twice yields two different codes |
 | FR-019 | `contracts/openapi.yaml` | contract tests assert response shapes against the schema |
-| FR-020, SC-009 | `test/contract/unknown-code-limit.e2e-spec.ts` + `src/links/unknown-code-limiter.spec.ts` + `test/contract/rate-limit.e2e-spec.ts` | budget shared by redirect and preview; exhausted budget refuses hits too; hits do not consume it; concurrent guesses cannot overrun it; IPv6 addresses in one /64 share a budget |
+| FR-020, SC-009 | `test/contract/rate-limit.e2e-spec.ts` | lookups beyond the limit are refused with 429 for known and unknown codes alike; IPv6 addresses in one /64 share a limit; SC-009 follows from code length (research §2) |
 | Security headers | `test/contract/redirect.e2e-spec.ts` | `X-Content-Type-Options`, `X-Frame-Options`/CSP, `Referrer-Policy` present on every response |
 | Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL; log output never contains its value |
 
