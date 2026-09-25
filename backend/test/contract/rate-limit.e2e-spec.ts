@@ -81,6 +81,26 @@ describe('throttler isolation', () => {
     await request(server).get(`/api/links/${body.code}`).expect(429);
   });
 
+  // FR-020: a refusal must not tell a guesser whether the code exists. The throttler
+  // refuses before the lookup, so a real and an unknown code get the same answer.
+  it('refuses a real and an unknown code identically once the limit is reached', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '1000',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '2',
+    });
+    const server = ctx.app.getHttpServer();
+    const { body } = await request(server).post('/api/links').send({ url: 'https://example.com/' });
+
+    await request(server).get(`/${body.code}`).expect(301);
+    await request(server).get('/zzzzzzzzzzzzz').expect(404);
+
+    const real = await request(server).get(`/${body.code}`).expect(429);
+    const unknown = await request(server).get('/zzzzzzzzzzzzy').expect(429);
+    expect(unknown.body).toEqual(real.body);
+    expect(unknown.headers['retry-after']).toBe(real.headers['retry-after']);
+    expect(real.headers.location).toBeUndefined();
+  });
+
   it('leaves the app shell unthrottled', async () => {
     ctx = await createTestApp({
       RATE_LIMIT_CREATE_PER_HOUR: '1',
@@ -92,6 +112,27 @@ describe('throttler isolation', () => {
       await request(server).get('/').expect(200);
       await request(server).get('/p/anything').expect(200);
     }
+  });
+
+  // Behind the proxy (trust proxy = 1) the client address comes from X-Forwarded-For.
+  it('counts every address in one IPv6 /64 as one client', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '2',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '1000',
+    });
+    const server = ctx.app.getHttpServer();
+    const createFrom = (ip: string) =>
+      request(server)
+        .post('/api/links')
+        .set('X-Forwarded-For', ip)
+        .send({ url: 'https://example.com/' });
+
+    await createFrom('2001:db8:1:2::1').expect(201);
+    await createFrom('2001:db8:1:2::2').expect(201);
+    await createFrom('2001:db8:1:2:ffff::3').expect(429);
+
+    // A different /64 is a different client.
+    await createFrom('2001:db8:1:3::1').expect(201);
   });
 
   it('does not count creations against the redirect limit', async () => {

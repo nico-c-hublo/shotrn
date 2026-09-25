@@ -3,7 +3,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { LinkNotFoundError } from '../common/errors';
 import { CreateLinkDto } from './dto/create-link.dto';
-import type { LinkResponse } from './dto/link.response';
+import type { ExpiredLinkResponse, LinkResponse } from './dto/link.response';
 import { LinksService } from './links.service';
 
 @Controller('api/links')
@@ -19,13 +19,15 @@ export class LinksController {
   }
 
   /**
-   * Preview metadata (FR-016). Never redirects. An expired link still returns its body so
-   * the preview page can show what the link used to point at; the 410 carries data, not an
-   * error envelope.
+   * Preview metadata (FR-016). Never redirects. An expired link answers 410 with when it
+   * expired but not where it pointed (FR-013); the 410 carries data, not an error envelope.
    */
   @Get(':code')
   @SkipThrottle({ create: true })
-  async findOne(@Param('code') code: string, @Res({ passthrough: true }) res: Response) {
+  async findOne(
+    @Param('code') code: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LinkResponse | ExpiredLinkResponse> {
     const resolved = await this.links.resolve(code);
     if (resolved.outcome === 'not-found') throw new LinkNotFoundError();
     if (resolved.outcome === 'expired') res.status(410);

@@ -8,34 +8,38 @@ under the principles in [`.specify/memory/constitution.md`](.specify/memory/cons
 
 ## How short codes work
 
-The short code is **not stored**. Each row's `BIGINT` identity column is the only id
-source; the code is `sqids.encode(id)`, and a redirect decodes the code back to the
-primary key:
+A short code is a **secret**: holding it is the only way to learn where the link goes.
+Each code is 13 characters drawn independently from `[0-9A-Za-z]` with
+`crypto.randomInt`, and it is stored as the table's primary key:
 
 ```
-POST /api/links  →  INSERT ... RETURNING id  →  sqids.encode(id)  →  "k9Xz2Q"
-GET  /k9Xz2Q     →  sqids.decode → id        →  SELECT by PK      →  301/302
+POST /api/links  →  draw 13 random chars  →  INSERT … ON CONFLICT (code) DO NOTHING  →  "k9Xz2QmB7rTq4"
+GET  /k9Xz2QmB7rTq4  →  format check  →  SELECT by primary key  →  301/302
 ```
 
-Uniqueness is the database's guarantee, so there is no collision handling anywhere in
-the code. A shuffled, deployment-specific alphabet keeps adjacent ids from producing
-adjacent-looking codes.
+Nothing derives a code (no counter, key or alphabet), so no configuration value or leak
+short of the database itself lets anyone compute one. The only attack left is guessing
+among 62¹³ ≈ 2.0×10²³ codes (~77.4 bits), at no more than 600 lookups a minute per route
+for each client (IPv4 address or IPv6 /64). With 10 million links, 10,000 coordinated
+clients would find about 0.0003 links a year, one every ~3,200 years. The length does
+the work, so nobody is locked out for mistyping a code. An expired link says when it
+expired, never where it pointed.
 
-**Sqids is obfuscation, not encryption.** Anyone who learns the alphabet can enumerate;
-that is mitigated by rate limiting the redirect path, and no secret data sits behind a
-code (the destination is public by design).
+A clash with an existing code is reported by the insert as an empty result, and the
+service draws again. The odds are about 5×10⁻¹⁷ per draw at 10 million links, so three
+clashes in a row fail the request: that would mean a broken random source, not bad luck.
+
+Why this replaced Sqids, why a keyed permutation was rejected, and the arithmetic behind
+13 characters are in [`research.md §1–2`](specs/001-url-shortener/research.md).
 
 ### Scaling
 
-Today one Postgres primary handles the counter: sequences are lock-free and
-non-transactional, so any number of backend instances share it with no coordination.
-The documented path, none of which changes the code format or the API, is in
-[`research.md §1`](specs/001-url-shortener/research.md):
+Codes need no coordination, so any number of backend instances can create links
+without a shared counter. The path, none of which changes the code format or the API:
 
-1. **now** — identity column, no cache
+1. **now** — one Postgres primary, no cache
 2. **reads grow** — in-process LRU for unexpired permanent links, then read replicas
-3. **writes grow** — swap `LinksRepository.insert` for per-instance range allocation
-4. **storage grows** — shard by id range; the decoded id identifies the shard
+3. **storage grows** — shard by hash of the code
 
 ## Prerequisites
 
@@ -49,7 +53,7 @@ is a local convenience, and production and CI simply have no file.
 ## Setup
 
 ```bash
-cp .env.example .env          # then fill in SQIDS_ALPHABET (see below)
+cp .env.example .env
 npm install
 docker compose up -d postgres
 npm run db:migrate            # picks DATABASE_URL up from .env
@@ -65,20 +69,8 @@ it: an exported variable takes precedence over the file.
 | `DATABASE_URL`                   | `postgres://app:app@localhost:5432/shotrn` | App role needs only `SELECT`/`INSERT`            |
 | `BASE_URL`                       | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check |
 | `PORT`                           | `3000`                                     |                                                  |
-| `SQIDS_ALPHABET`                 | 62-char shuffle of `[0-9A-Za-z]`           | See the warning below                            |
-| `RATE_LIMIT_CREATE_PER_HOUR`     | `60`                                       | Per client IP                                    |
-| `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600`                                      | Per client IP                                    |
-
-Generate the alphabet once:
-
-```bash
-node -e "const a=[...'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}console.log(a.join(''))"
-```
-
-> **`SQIDS_ALPHABET` must never change after launch.** The code _is_ the encoded id, so a
-> different alphabet decodes every existing short link to the wrong row or to nothing.
-> Treat it like a secret that can never be rotated: set it once, keep it out of logs, and
-> back it up with the database.
+| `RATE_LIMIT_CREATE_PER_HOUR`     | `60`                                       | Per client: IPv4 address or IPv6 /64             |
+| `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600`                                      | Per client: IPv4 address or IPv6 /64             |
 
 ## Run
 
@@ -111,13 +103,13 @@ specs/      Specification, plan, research, data model, contract, tasks
 
 ## Routes
 
-| Route                  | Purpose                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| `POST /api/links`      | Shorten a URL. Never deduplicates: the same URL twice yields two codes                    |
-| `GET /api/links/:code` | Preview metadata. 200 active, 410 expired (body retained), 404 unknown                    |
-| `GET /:code`           | Redirect. 301 permanent (cacheable), 302 temporary (`no-store`), 410 expired, 404 unknown |
-| `GET /` and `/p/:code` | SPA pages                                                                                 |
-| `GET /assets/*`        | Hashed frontend bundles                                                                   |
+| Route                  | Purpose                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------- |
+| `POST /api/links`      | Shorten a URL. Never deduplicates: the same URL twice yields two codes                      |
+| `GET /api/links/:code` | Preview metadata. 200 active, 410 expired (expiry only, never the destination), 404 unknown |
+| `GET /:code`           | Redirect. 301 permanent (cacheable), 302 temporary (`no-store`), 410 expired, 404 unknown   |
+| `GET /` and `/p/:code` | SPA pages                                                                                   |
+| `GET /assets/*`        | Hashed frontend bundles                                                                     |
 
 Full contract: [`contracts/openapi.yaml`](specs/001-url-shortener/contracts/openapi.yaml).
 
@@ -129,11 +121,13 @@ Each choice is justified, with alternatives considered, in
 - **NestJS + React 19/Vite.** NestJS provides DI, the validation pipe, the throttler and
   exception filters out of the box; the backend also serves the built SPA, so short
   codes and the UI share one origin (§8).
-- **PostgreSQL 16 + Drizzle ORM.** `INSERT … RETURNING` gives the id in one round-trip,
+- **PostgreSQL 16 + Drizzle ORM.** `INSERT … ON CONFLICT DO NOTHING RETURNING` stores a
+  link or reports a clash in one round-trip,
   `TIMESTAMPTZ` keeps expiry timezone-correct, and Drizzle provides typed rows and
   versioned SQL migrations without Prisma/TypeORM weight (§3, §8).
-- **Sqids over the row id.** Short, non-sequential codes with no stored code column and
-  no collision handling; see [How short codes work](#how-short-codes-work) (§1, §2).
+- **Random stored codes.** Codes are secrets rather than an encoded counter, so a
+  leaked configuration reveals none of them; see
+  [How short codes work](#how-short-codes-work) (§1, §2).
 - **301 for permanent, 302 for expiring links.** Permanent links can be cached by
   browsers because they never change; expiring ones are `no-store` so expiry takes effect
   for returning visitors (§4).
@@ -147,9 +141,8 @@ Each choice is justified, with alternatives considered, in
 
 ## Assumptions & shortcuts
 
-- **Rate limits are per instance.** `@nestjs/throttler` uses its in-memory store, so
-  with N backend instances the effective limit is N× the configured one. Acceptable for
-  v1 abuse control; a Redis store is the upgrade path (§6).
+- **Rate limits are per instance.** `@nestjs/throttler` keeps its counts in memory, so
+  with N backend instances the effective limit is N× the configured one. Acceptable for v1 abuse control; a Redis store is the upgrade path (§6).
 - **One reverse proxy in front.** `trust proxy` is set to `1`, so client IPs (and
   therefore rate-limit keys) are only correct behind exactly one proxy. Adjust it in
   `backend/src/main.ts` for other topologies.

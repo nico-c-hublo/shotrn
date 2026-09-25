@@ -20,7 +20,6 @@ describe('documented .env flow', () => {
       'DATABASE_URL',
       'BASE_URL',
       'PORT',
-      'SQIDS_ALPHABET',
       'RATE_LIMIT_CREATE_PER_HOUR',
       'RATE_LIMIT_REDIRECT_PER_MINUTE',
     ]) {

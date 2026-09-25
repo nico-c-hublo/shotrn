@@ -1,43 +1,31 @@
-import Sqids from 'sqids';
+import { randomInt } from 'node:crypto';
 
-/** Reserved first path segments that a generated code must never shadow. */
-export const RESERVED_SEGMENTS = ['assets', 'preview'];
+/** The 62 characters a short code may contain (FR-006). */
+export const CODE_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-export const MIN_CODE_LENGTH = 6;
-export const MAX_CODE_LENGTH = 10;
+/**
+ * 62¹³ ≈ 2^77.4, above the constitution's 77-bit floor: entropy, not a lockout, is what
+ * defeats guessing (research.md §2). Fixed length also means no code can shadow a reserved
+ * first path segment, none of which is this long.
+ */
+export const CODE_LENGTH = 13;
 
-export interface ShortCodec {
-  /** Encode a link id into its canonical short code. */
-  encode(id: number): string;
-  /** Decode a short code back to its link id, or null when the code cannot be one we issued. */
-  decode(code: string): number | null;
+const WELL_FORMED = new RegExp(`^[0-9A-Za-z]{${CODE_LENGTH}}$`);
+
+/** Returns an integer in [0, max). Injected only so tests can drive every outcome. */
+export type RandomIndex = (max: number) => number;
+
+/**
+ * Draws a fresh code. Every character is independent and uniform — `randomInt` rejects
+ * biased samples internally — so no issued code says anything about another (FR-007).
+ */
+export function generateCode(randomIndex: RandomIndex = randomInt): string {
+  let code = '';
+  for (let i = 0; i < CODE_LENGTH; i++) code += CODE_CHARS[randomIndex(CODE_CHARS.length)];
+  return code;
 }
 
-export function createShortCodec(alphabet: string): ShortCodec {
-  const sqids = new Sqids({
-    alphabet,
-    minLength: MIN_CODE_LENGTH,
-    blocklist: new Set(RESERVED_SEGMENTS),
-  });
-
-  return {
-    encode(id: number): string {
-      if (!Number.isSafeInteger(id) || id < 1) {
-        throw new RangeError('link id must be a positive safe integer');
-      }
-      return sqids.encode([id]);
-    },
-
-    decode(code: string): number | null {
-      if (code.length < MIN_CODE_LENGTH || code.length > MAX_CODE_LENGTH) return null;
-      const numbers = sqids.decode(code);
-      if (numbers.length !== 1) return null;
-      const [id] = numbers;
-      if (!Number.isSafeInteger(id) || id < 1) return null;
-      // Sqids happily decodes strings we never issued. Only the canonical encoding counts,
-      // so `/aaaaaa` cannot resolve to a real link.
-      if (sqids.encode([id]) !== code) return null;
-      return id;
-    },
-  };
+/** True when `code` could have been issued; anything else can be answered without a query. */
+export function isWellFormedCode(code: string): boolean {
+  return WELL_FORMED.test(code);
 }

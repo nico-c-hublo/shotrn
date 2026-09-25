@@ -38,6 +38,10 @@ export class AppModule {
             { name: 'create', ttl: 60 * 60 * 1000, limit: env.rateLimitCreatePerHour },
             { name: 'redirect', ttl: 60 * 1000, limit: env.rateLimitRedirectPerMinute },
           ],
+          // Clients are keyed per IPv4 address or IPv6 /64, so rotating addresses within one
+          // allocation resets no limit (research.md §6). 64 is the library default since
+          // 6.7; stating it keeps a future default from silently loosening FR-020.
+          ipv6SubnetPrefix: 64,
         }),
         LinksModule,
       ],

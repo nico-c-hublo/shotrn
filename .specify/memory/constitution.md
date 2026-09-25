@@ -1,18 +1,27 @@
 <!--
 Sync Impact Report
-- Version change: (template, unversioned) → 1.0.0
-- Modified principles: none (initial ratification)
-- Added sections:
-  - Core Principles: I. Simplicity First; II. Readable, Typed Code;
-    III. Security by Default (NON-NEGOTIABLE); IV. Tests Prove Behaviour;
-    V. Small, Reviewable Changes
-  - Security Requirements
-  - Development Workflow & Quality Gates
-  - Governance
+- Version change: 1.1.0 → 1.2.0 (MINOR: security guidance materially changed)
+- Modified principles:
+  - III. Security by Default: guessing resistance now rests on code entropy rather
+    than on a separate budget for unknown-code lookups. The entropy floor rises from
+    64 to 77 bits (13 alphanumeric characters). The rule requiring unknown-code
+    lookups to be limited separately from successful ones is replaced by a rule that
+    every lookup route is rate limited per client, keyed per IPv4 address or IPv6 /64.
+- Risk statement (a security rule is relaxed): without the unknown-code budget, one
+  client may make up to the lookup rate limit of guesses (1,200 a minute across the
+  redirect and preview routes) instead of 20 per 10 minutes, about 600× more. The
+  extra 12 bits of entropy (×3,844 code space) more than offset it: with 10 million
+  links, 10,000 coordinated clients find about 0.0003 links a year, against about
+  0.002 under 1.1.0. What is given up: a budget cannot be exhausted and a client
+  cannot be locked out, which removes the denial of service that let one user on a
+  shared IPv4 address (carrier or office NAT) block real links for everyone on it.
+  The budget could not have spared real links, because refusing only misses would
+  tell a guesser which codes exist (research.md §6).
+- Added sections: none
 - Removed sections: none
-- Templates requiring updates: none (plan/spec/tasks templates read the
-  constitution at runtime; no placeholders in them reference removed content)
-- Follow-up TODOs: none
+- Templates requiring updates: none
+- Follow-up TODOs: specs/001-url-shortener, README.md and CLAUDE.md must be amended
+  before implementation.
 -->
 
 # Shotrn Constitution
@@ -71,9 +80,16 @@ MUST be treated as an attack surface at every layer.
   service never constructs a redirect from user input at request time.
 - Secrets (database credentials, API keys, salts) MUST be supplied via environment or a
   secret store and MUST NEVER be committed, logged, or returned in responses.
-- Short identifiers MUST NOT be trivially enumerable in sequence; the identifier
-  encoding MUST be non-guessable to a casual observer even if the underlying counter
-  is sequential.
+- Short codes are bearer secrets: knowing a code is the only way to learn its
+  destination. Codes MUST be drawn from a cryptographically secure random source with
+  at least 77 bits of entropy, and MUST NOT be derived from a counter, a key, or any
+  other value whose disclosure would let codes be computed. Resistance to guessing
+  comes from that entropy, not from refusing clients who guess.
+- Every route that looks a code up MUST be rate limited per client, and a client MUST
+  NOT be able to escape a limit by rotating addresses within one network allocation
+  (an IPv6 /64).
+- A response about a link that can no longer be followed (expired) MUST NOT reveal its
+  destination.
 - Every public write endpoint MUST be rate-limited. Every response MUST carry
   baseline security headers (no-sniff, frame denial, strict referrer policy).
 - Dependencies are pinned via lockfile and audited; a known high/critical vulnerability
@@ -183,4 +199,4 @@ principle here, the principle wins.
   repository's agent context file (e.g. `CLAUDE.md`); it MUST NOT contradict this
   constitution and is updated when the constitution changes.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
+**Version**: 1.2.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-25

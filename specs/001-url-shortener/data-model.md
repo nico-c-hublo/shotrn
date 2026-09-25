@@ -2,36 +2,35 @@
 
 **Feature**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md) | **Date**: 2026-09-22
 
-One table. The short code is not a column — it is derived from `id` (see
-[research.md §1–2](research.md)).
+One table, keyed by the short code. The code is random and stored (see
+[research.md §1–2](research.md); amended 2026-09-25, replacing a Sqids-derived code).
 
 ## Table `links`
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| `id` | `BIGINT` | `GENERATED ALWAYS AS IDENTITY`, PK | Sole ID source; `code = sqids.encode([id])` |
+| `code` | `TEXT COLLATE "C"` | PK, `CHECK (code ~ '^[0-9A-Za-z]{13}$')` | 13 CSPRNG-drawn characters; the unique index resolves concurrent duplicates. Byte-order collation: see research §2 |
 | `original_url` | `TEXT` | `NOT NULL`, `CHECK (char_length(original_url) BETWEEN 1 AND 2048)` | Stored exactly as submitted after trim (FR-008); scheme allow-list enforced at API boundary, and by `CHECK (original_url ~* '^https?://')` (case-insensitive: an uppercase scheme is stored verbatim per FR-008) as defence in depth |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT now()` | Server clock |
 | `expires_at` | `TIMESTAMPTZ` | `NULL` | `NULL` = permanent. `CHECK (expires_at IS NULL OR expires_at > created_at)` |
 
-**Indexes**: primary key only. No lookup by `original_url` (no dedup, FR-018) and no
+**Indexes**: primary key (`code`) only. No lookup by `original_url` (no dedup, FR-018) and no
 lookup by expiry in v1 (purge job is deferred; when added, a partial index
 `WHERE expires_at IS NOT NULL` suffices).
 
-**Database role**: application connects as a role with `SELECT, INSERT` on `links` and
-`USAGE` on its sequence only; migrations run under a separate owner role
+**Database role**: application connects as a role with `SELECT, INSERT` on `links`
+only (there is no sequence); migrations run under a separate owner role
 (constitution: least privilege, no DDL at runtime). `UPDATE`/`DELETE` are not granted —
 v1 never modifies a link.
 
 ## Domain types (backend)
 
 ```ts
-type LinkId = bigint;                 // from pg; asserted ≤ Number.MAX_SAFE_INTEGER before encode
-type ShortCode = string;              // [0-9A-Za-z]{6,10}, canonical Sqids output
+type ShortCode = string;              // [0-9A-Za-z]{13}, drawn with crypto.randomInt
 type ExpiryOption = '1h' | '1d' | '7d' | '30d' | 'never';
 
 interface Link {
-  id: LinkId;
+  code: ShortCode;
   originalUrl: string;
   createdAt: Date;
   expiresAt: Date | null;
@@ -44,8 +43,6 @@ type LinkStatus = 'active' | 'expired';
 
 | Value | Derivation |
 |---|---|
-| `code` | `sqids.encode([Number(id)])` |
-| `id` from `code` | `sqids.decode(code)`; valid only if exactly one number is returned **and** `sqids.encode(decoded) === code` (canonical check) |
 | `shortUrl` | `${BASE_URL}/${code}` |
 | `previewUrl` | `${BASE_URL}/p/${code}` |
 | `status` | `expiresAt !== null && expiresAt <= now()` → `'expired'` else `'active'` |
@@ -80,7 +77,32 @@ There is no delete, disable, or edit transition in v1.
 
 | Input | Outcome | HTTP |
 |---|---|---|
-| Non-canonical / undecodable code | not found | 404 |
-| Decodes to id with no row | not found | 404 |
-| Row found, `status = active` | redirect (or preview JSON) | 301 (permanent) / 302 (temporary); preview 200 |
-| Row found, `status = expired` | expired page (or preview JSON with `status: expired`) | 410 |
+| Client over the lookup limit (FR-020) | refused before lookup, whether or not the code exists | 429 |
+| Not 13 characters of `[0-9A-Za-z]` | not found, no query issued | 404 |
+| Well-formed, no row | not found | 404 |
+| Row found, `status = active` | redirect (or preview JSON `LinkResponse`) | 301 (permanent) / 302 (temporary); preview 200 |
+| Row found, `status = expired` | expired page (or preview JSON `ExpiredLinkResponse`: `code`, `status`, `expiresAt`; never `originalUrl`) | 410 |
+
+## Creation
+
+```text
+repeat up to 3 times:
+  code ← 13 × CODE_CHARS[crypto.randomInt(62)]
+  INSERT … VALUES (code, …) ON CONFLICT (code) DO NOTHING RETURNING *
+  a row came back → done
+fail the request (500): three collisions in a 2.0×10²³ space mean a broken random source
+```
+
+## Migrations
+
+`0003_code_length_13.sql` moves the `code_format` CHECK from 11 to 13 characters. It
+deletes any 11-character rows first: those can only exist in a database that applied
+0002 from the unmerged branch, and the format check makes them unreachable anyway.
+
+### From the Sqids schema
+
+`0002_random_codes.sql` drops the identity-keyed table and creates the code-keyed one.
+No deployment exists, so there is no data to carry over, and it could not be carried
+over usefully anyway: every issued Sqids code is recoverable from the alphabet, so
+keeping those links reachable would keep them exposed. Local development databases
+lose their links when the migration runs.

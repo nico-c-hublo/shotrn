@@ -4,9 +4,9 @@ import { PreviewCard } from '../src/components/PreviewCard';
 import type { LinkResponse } from '../src/api/links';
 
 const link: LinkResponse = {
-  code: 'k9Xz2Q',
-  shortUrl: 'http://localhost:3000/k9Xz2Q',
-  previewUrl: 'http://localhost:3000/p/k9Xz2Q',
+  code: 'k9Xz2QmB7rTq4',
+  shortUrl: 'http://localhost:3000/k9Xz2QmB7rTq4',
+  previewUrl: 'http://localhost:3000/p/k9Xz2QmB7rTq4',
   originalUrl: 'https://example.com/destination?x=1',
   createdAt: '2026-09-24T12:00:00.000Z',
   expiresAt: '2026-10-01T12:00:00.000Z',
@@ -16,7 +16,7 @@ const link: LinkResponse = {
 describe('PreviewCard', () => {
   // FR-016
   it('shows the destination as text and never navigates on its own', () => {
-    render(<PreviewCard link={link} expired={false} />);
+    render(<PreviewCard link={link} />);
 
     expect(screen.getByText('https://example.com/destination?x=1')).toBeInTheDocument();
     const cta = screen.getByRole('link', { name: 'Continue to this site' });
@@ -25,20 +25,13 @@ describe('PreviewCard', () => {
   });
 
   it('shows creation and expiry dates', () => {
-    render(<PreviewCard link={link} expired={false} />);
+    render(<PreviewCard link={link} />);
     expect(screen.getByText('Created')).toBeInTheDocument();
     expect(screen.getByText('Expires')).toBeInTheDocument();
   });
 
   it('omits expiry for a permanent link', () => {
-    render(<PreviewCard link={{ ...link, expiresAt: null }} expired={false} />);
+    render(<PreviewCard link={{ ...link, expiresAt: null }} />);
     expect(screen.queryByText('Expires')).not.toBeInTheDocument();
-  });
-
-  it('offers no way through once the link has expired', () => {
-    render(<PreviewCard link={link} expired />);
-
-    expect(screen.getByRole('heading', { name: 'This link has expired' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Continue to this site' })).not.toBeInTheDocument();
   });
 });

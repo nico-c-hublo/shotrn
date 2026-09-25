@@ -34,7 +34,7 @@ export async function createTestApp(overrides: Partial<NodeJS.ProcessEnv> = {}):
     env,
     pool,
     async reset() {
-      await pool.query('TRUNCATE TABLE links RESTART IDENTITY');
+      await pool.query('TRUNCATE TABLE links');
     },
     async close() {
       await app.close();

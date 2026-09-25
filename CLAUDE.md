@@ -56,14 +56,19 @@ existed, and the Jest config named setup files that had not landed yet.
 
 ## Things that will bite you
 
-- **`SQIDS_ALPHABET` is effectively immutable.** The short code is the Sqids encoding of
-  the row id, so changing the alphabet silently breaks every link ever issued. It is not
-  a tuning knob.
-- **Codes are derived, never stored.** There is no `code` column. If you find yourself
-  adding one, re-read `research.md §1` first.
-- **Decoding requires the canonical check.** `sqids.decode` returns a number for many
-  strings we never issued; `short-code.ts` re-encodes and compares. Removing that check
-  makes `/aaaaaa` resolve to a real link.
+- **Codes are secrets, never derived.** `generateCode` in `short-code.ts` is the only
+  source. Do not make a code a function of anything (a counter, a key, a hash of the
+  URL): if a value can compute codes, leaking it lists every link. `research.md §1`
+  records why Sqids and a keyed permutation were both rejected.
+- **A clash is an empty insert, not an exception.** `LinksRepository.insert` uses
+  `ON CONFLICT DO NOTHING` and returns `null`; the service draws again. A `SELECT`
+  before the insert would race, and catching the unique violation aborts the transaction.
+- **The code length lives in five places.** `CODE_LENGTH` in `short-code.ts`, the
+  `code_format` CHECK in `schema.ts` and in the migration, and the route patterns in
+  `frontend/src/App.tsx` and `frontend/vite.config.ts`. Changing it needs a migration.
+- **`COLLATE "C"` exists only in the migration.** Drizzle has no collation option, so
+  `schema.ts` cannot show it. Do not drop it: codes are case-sensitive byte strings, and
+  a locale collation can reorder the key after an OS update.
 - **Route order matters.** `RedirectController`'s `/:code` is a catch-all and must stay
   last in `LinksModule.controllers`, after `/api/links` and `/p/:code`.
 - **`expires_at > created_at` is enforced by the database.** Backdating an expiry in a
@@ -73,8 +78,9 @@ existed, and the Jest config named setup files that had not landed yet.
 - **Validate against the documented commands, not a hand-rolled script.** Exporting
   variables in a test harness hides whether `npm run db:migrate` and `npm start` actually
   work; that is how `.env` support went missing in the first place.
-- **410 is not an error.** An expired link returns a `LinkResponse` with
-  `status: 'expired'`, not an error envelope. There is deliberately no `GONE` error code.
+- **410 is not an error.** An expired link returns an `ExpiredLinkResponse` (`code`,
+  `status: 'expired'`, `expiresAt`), not an error envelope. There is deliberately no
+  `GONE` error code. Never add the destination back: see the security invariants.
 
 ## Security invariants
 
@@ -87,8 +93,19 @@ weaken one without amending the constitution first.
 - Error responses carry a stable code and a safe message — never a stack trace, SQL, or
   filesystem path.
 - Secrets come from the environment and never reach a log, a response, or the repo.
+  Short codes count as secrets: logs carry the route pattern (`GET /:code`), never the
+  path, and a failed query is logged by its SQL and database error, never its
+  parameters (Drizzle puts them in the error message; see `describeFailure`).
+- Short codes are 13 characters from a CSPRNG and derived from nothing, so no leaked
+  value can compute them.
+- An expired link reveals when it expired, never where it pointed. The expired
+  `Resolution` carries no row, so a controller has nothing to leak.
 - Both public paths are rate limited, on separate throttlers so creation limits cannot
-  block redirects.
+  block redirects. Clients are keyed per IPv4 address or IPv6 /64
+  (`ipv6SubnetPrefix: 64`), so rotating addresses in one allocation resets nothing.
+- Every route that looks a code up is rate limited on the `redirect` throttler. A new
+  lookup route without it would be an unlimited guessing oracle. Guessing resistance
+  comes from code length, not from locking out clients who guess (research.md §2).
 
 ## Style
 

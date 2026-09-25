@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { LinksRepository } from '../../src/links/links.repository';
 import { createTestApp, type TestApp } from '../setup/app';
 
 describe('GET /:code', () => {
@@ -60,20 +61,24 @@ describe('GET /:code', () => {
 
   // FR-009
   it('returns 404 with no Location for a code that was never issued', async () => {
-    const res = await request(server()).get('/zzzzzz').expect(404);
+    const res = await request(server()).get('/zzzzzzzzzzzzz').expect(404);
     expect(res.headers.location).toBeUndefined();
     expect(res.text).toContain('<div id="root">');
   });
 
-  it('returns 404 for a decodable but non-canonical code', async () => {
-    const code = await create('https://example.com/real');
-    const scrambled = code.slice(1) + code[0];
-    if (scrambled !== code) {
-      const res = await request(server()).get(`/${scrambled}`);
-      expect([404, 301]).toContain(res.status);
-      if (res.status === 301) expect(res.headers.location).not.toBe('https://example.com/real');
-    }
-  });
+  it.each(['zzzzzz', 'zzzzzzzzzzzzzz', 'zzzzzzzzzzzz-'])(
+    'answers the malformed code %p with 404 without querying',
+    async (code) => {
+      const lookup = jest.spyOn(ctx.app.get(LinksRepository), 'findByCode');
+      try {
+        const res = await request(server()).get(`/${code}`).expect(404);
+        expect(res.headers.location).toBeUndefined();
+        expect(lookup).not.toHaveBeenCalled();
+      } finally {
+        lookup.mockRestore();
+      }
+    },
+  );
 
   it('treats codes as case-sensitive', async () => {
     const code = await create('https://example.com/case');
@@ -81,11 +86,8 @@ describe('GET /:code', () => {
       .map((c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()))
       .join('');
 
-    if (flipped !== code) {
-      const res = await request(server()).get(`/${flipped}`);
-      if (res.status === 301) expect(res.headers.location).not.toBe('https://example.com/case');
-      else expect(res.status).toBe(404);
-    }
+    // An all-digit code has no case to flip; with 13 random characters that is ~5e-11.
+    if (flipped !== code) await request(server()).get(`/${flipped}`).expect(404);
   });
 
   // FR-013
@@ -104,38 +106,41 @@ describe('GET /:code', () => {
   });
 
   it('returns 410 with no Location one second after expiry', async () => {
-    const code = await create('https://example.com/gone', '1h');
+    const code = await create('https://example.com/gone-secret', '1h');
     await ctx.pool.query(
       "UPDATE links SET created_at = now() - interval '2 hours', expires_at = now() - interval '1 second'",
     );
 
     const res = await request(server()).get(`/${code}`).expect(410);
     expect(res.headers.location).toBeUndefined();
+    // FR-013: the expired page must not carry the destination either.
+    expect(res.text).not.toContain('gone-secret');
   });
 
   // Constitution III: baseline security headers on every response.
-  it.each(['/zzzzzz', '/', '/api/links/zzzzzz'])('sets security headers on %s', async (path) => {
-    const res = await request(server()).get(path);
-    expect(res.headers['x-content-type-options']).toBe('nosniff');
-    expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
-    expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
-  });
+  it.each(['/zzzzzzzzzzzzz', '/', '/api/links/zzzzzzzzzzzzz'])(
+    'sets security headers on %s',
+    async (path) => {
+      const res = await request(server()).get(path);
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+      expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+      expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    },
+  );
 
   // FR-017
   it('returns a safe INTERNAL envelope when the repository fails', async () => {
     const code = await create('https://example.com/boom');
-    await ctx.pool.query('DROP TABLE links');
-
-    const res = await request(server()).get(`/${code}`).expect(500);
-    expect(res.body).toEqual({ error: { code: 'INTERNAL', message: 'Something went wrong' } });
-    const serialized = JSON.stringify(res.body);
-    expect(serialized).not.toMatch(/relation|select|stack|\/Users\//i);
-
-    await ctx.pool.query(`CREATE TABLE links (
-      id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-      original_url text NOT NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      expires_at timestamptz
-    )`);
+    // Renamed rather than dropped: every suite shares this database, and a hand-written
+    // replacement once came back without the CHECK constraints the repository tests rely on.
+    await ctx.pool.query('ALTER TABLE links RENAME TO links_hidden');
+    try {
+      const res = await request(server()).get(`/${code}`).expect(500);
+      expect(res.body).toEqual({ error: { code: 'INTERNAL', message: 'Something went wrong' } });
+      const serialized = JSON.stringify(res.body);
+      expect(serialized).not.toMatch(/relation|select|stack|\/Users\//i);
+    } finally {
+      await ctx.pool.query('ALTER TABLE links_hidden RENAME TO links');
+    }
   });
 });

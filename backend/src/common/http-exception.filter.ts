@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { DrizzleQueryError } from 'drizzle-orm';
 import type { Request, Response } from 'express';
 import { DomainError, type ErrorCode, type ErrorEnvelope } from './errors';
 
@@ -25,7 +26,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const { status, body } = this.describe(exception);
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(`${request.method} ${request.url} failed`, exception as Error);
+      // Never the URL or the raw error: a path carries a short code, which is a bearer
+      // secret, and a failed query's error carries its parameters (constitution III).
+      this.logger.error(
+        `${request.method} ${routePattern(request)} failed: ${describeFailure(exception)}`,
+      );
     }
 
     if (status === HttpStatus.TOO_MANY_REQUESTS) {
@@ -89,4 +94,37 @@ function safeMessage(exception: HttpException, status: number): string {
     if (typeof message === 'string') return message;
   }
   return exception.message;
+}
+
+/** The matched route (`/:code`), not the requested path, which would contain the code. */
+function routePattern(request: Request): string {
+  // Express types `route` as any; only a matched route has a string `path`.
+  const path: unknown = (request.route as { path?: unknown } | undefined)?.path;
+  return typeof path === 'string' ? path : '(no matching route)';
+}
+
+/**
+ * Enough to diagnose a failure without its data. Drizzle puts every query parameter into
+ * the error message (`params: <code>,<url>,…`), so a failed query is described by its SQL,
+ * whose values are `$n` placeholders, and by the database's error code and message.
+ * Postgres keeps row values in a separate `detail` field, which is left out.
+ */
+export function describeFailure(exception: unknown): string {
+  if (exception instanceof DrizzleQueryError) {
+    // Frames only: the stack starts with the message, which spans several lines.
+    const frames = (exception.stack ?? '')
+      .split('\n')
+      .filter((line) => line.trimStart().startsWith('at '))
+      .join('\n');
+    return `query "${exception.query}" (${describeCause(exception.cause)})\n${frames}`;
+  }
+  if (exception instanceof Error)
+    return exception.stack ?? `${exception.name}: ${exception.message}`;
+  return 'a non-Error value was thrown';
+}
+
+function describeCause(cause: unknown): string {
+  if (!(cause instanceof Error)) return 'no cause';
+  const code: unknown = (cause as { code?: unknown }).code;
+  return typeof code === 'string' ? `${code} ${cause.message}` : cause.message;
 }

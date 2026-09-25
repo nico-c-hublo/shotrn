@@ -1,21 +1,22 @@
 import { sql } from 'drizzle-orm';
-import { bigint, check, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
- * The only table. The short code is NOT stored: it is Sqids-encoded from `id`
- * (see specs/001-url-shortener/research.md §1). Uniqueness therefore comes from the
- * identity column, so no collision handling exists anywhere in the application.
+ * The only table, keyed by the random short code (research.md §1). The primary key is what
+ * makes a clash impossible to store: the insert reports it and the service draws again.
+ * `COLLATE "C"` is declared in the migration; Drizzle has no column option for it.
  */
 export const links = pgTable(
   'links',
   {
-    id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+    code: text('code').primaryKey(),
     originalUrl: text('original_url').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     // NULL means permanent (FR-011).
     expiresAt: timestamp('expires_at', { withTimezone: true }),
   },
   (table) => [
+    check('code_format', sql`${table.code} ~ '^[0-9A-Za-z]{13}$'`),
     check('original_url_length', sql`char_length(${table.originalUrl}) between 1 and 2048`),
     // Case-insensitive: an uppercase scheme is stored verbatim per FR-008.
     check('original_url_scheme', sql`${table.originalUrl} ~* '^https?://'`),

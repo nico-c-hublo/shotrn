@@ -4,20 +4,34 @@ import { InvalidUrlError } from '../common/errors';
 import type { LinkRow } from '../db/schema';
 import { toExpiresAt, type ExpiryOption } from './expiry';
 import { LinksRepository } from './links.repository';
-import { SHORT_CODEC, type ShortCodec } from './short-codec.provider';
-import { linkStatus, toLinkResponse, type LinkResponse } from './dto/link.response';
+import { CODE_GENERATOR, type CodeGenerator } from './code-generator.provider';
+import { isWellFormedCode } from './short-code';
+import {
+  isExpired,
+  toExpiredLinkResponse,
+  toLinkResponse,
+  type ExpiredLinkResponse,
+  type LinkResponse,
+} from './dto/link.response';
 import { validateUrl } from './url-validation';
 
+/**
+ * A clash has probability N / 62¹³ per draw (about 5e-17 at 10 million links), so a second
+ * attempt is already a curiosity and a third failure means the random source is broken.
+ * Failing loudly beats looping on it.
+ */
+export const MAX_CODE_DRAWS = 3;
+
 export type Resolution =
-  | { outcome: 'active'; row: LinkRow; code: string; response: LinkResponse }
-  | { outcome: 'expired'; row: LinkRow; code: string; response: LinkResponse }
+  | { outcome: 'active'; row: LinkRow; response: LinkResponse }
+  | { outcome: 'expired'; response: ExpiredLinkResponse }
   | { outcome: 'not-found' };
 
 @Injectable()
 export class LinksService {
   constructor(
     private readonly repository: LinksRepository,
-    @Inject(SHORT_CODEC) private readonly codec: ShortCodec,
+    @Inject(CODE_GENERATOR) private readonly generateCode: CodeGenerator,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
@@ -29,24 +43,33 @@ export class LinksService {
     const validated = validateUrl(url);
     if (!validated.ok) throw new InvalidUrlError(validated.message);
 
-    const row = await this.repository.insert({
-      originalUrl: validated.value,
-      expiresAt: toExpiresAt(expiry),
-    });
+    const expiresAt = toExpiresAt(expiry);
+    for (let draw = 0; draw < MAX_CODE_DRAWS; draw++) {
+      const row = await this.repository.insert({
+        code: this.generateCode(),
+        originalUrl: validated.value,
+        expiresAt,
+      });
+      if (row !== null) return toLinkResponse(row, this.env.baseUrl);
+    }
 
-    return toLinkResponse(row, this.codec.encode(row.id), this.env.baseUrl);
+    // Surfaces as 500 INTERNAL; the filter logs this message server-side only.
+    throw new Error(`short code clashed ${MAX_CODE_DRAWS} times in a row; check the RNG`);
   }
 
   /** Resolves a short code to its link, distinguishing "expired" from "never existed". */
   async resolve(code: string, now: Date = new Date()): Promise<Resolution> {
-    const id = this.codec.decode(code);
-    if (id === null) return { outcome: 'not-found' };
+    // A string we could never have issued cannot match a row, so it costs no query.
+    if (!isWellFormedCode(code)) return { outcome: 'not-found' };
 
-    const row = await this.repository.findById(id);
+    const row = await this.repository.findByCode(code);
     if (row === null) return { outcome: 'not-found' };
 
-    const response = toLinkResponse(row, code, this.env.baseUrl, now);
-    const outcome = linkStatus(row.expiresAt, now);
-    return { outcome, row, code, response };
+    // The expired outcome deliberately carries no row: nothing downstream can leak the
+    // destination of a link it was never handed (FR-013).
+    if (row.expiresAt !== null && isExpired(row.expiresAt, now)) {
+      return { outcome: 'expired', response: toExpiredLinkResponse(code, row.expiresAt) };
+    }
+    return { outcome: 'active', row, response: toLinkResponse(row, this.env.baseUrl) };
   }
 }

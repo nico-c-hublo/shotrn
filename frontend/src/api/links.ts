@@ -12,7 +12,14 @@ export interface LinkResponse {
   originalUrl: string;
   createdAt: string;
   expiresAt: string | null;
-  status: 'active' | 'expired';
+  status: 'active';
+}
+
+/** A 410 body: when the link expired, never where it pointed (FR-013). */
+export interface ExpiredLinkResponse {
+  code: string;
+  status: 'expired';
+  expiresAt: string;
 }
 
 export interface ApiError {
@@ -56,16 +63,16 @@ export async function createLink(url: string, expiry: ExpiryOption): Promise<Lin
 
 export type PreviewResult =
   | { state: 'found'; link: LinkResponse }
-  | { state: 'expired'; link: LinkResponse }
+  | { state: 'expired'; link: ExpiredLinkResponse }
   | { state: 'not-found' };
 
-/** A 410 still carries the link body, so the preview can explain what the link used to be. */
+/** A 410 still carries a body, so the page can say when the link expired. */
 export async function getLink(code: string): Promise<PreviewResult> {
   const response = await fetch(`/api/links/${encodeURIComponent(code)}`);
 
   if (response.status === 404) return { state: 'not-found' };
   if (response.status === 410) {
-    return { state: 'expired', link: (await response.json()) as LinkResponse };
+    return { state: 'expired', link: (await response.json()) as ExpiredLinkResponse };
   }
   if (!response.ok) throw await parseError(response);
 
