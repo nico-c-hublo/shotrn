@@ -13,7 +13,7 @@ Operational guidance for agents and developers. It must not contradict
 ## Commands
 
 ```bash
-npm run check   # typecheck + eslint + prettier — must pass before pushing
+npm run check   # vp check (oxfmt, oxlint, TypeScript 7) + tsc — must pass before pushing
 npm test        # unit + contract + integration + frontend; needs Docker, nothing else
 npm run dev     # backend :3000 + Vite :5173
 ```

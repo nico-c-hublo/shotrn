@@ -10,7 +10,9 @@ import { StatusScreen } from './components/StatusScreen';
  * nothing here (research.md §9).
  */
 export type Route =
-  { kind: 'home' } | { kind: 'preview'; code: string } | { kind: 'status'; code: string };
+  | { kind: 'home' }
+  | { kind: 'preview'; code: string }
+  | { kind: 'status'; code: string };
 
 export function parseRoute(pathname: string): Route {
   const preview = /^\/p\/([0-9A-Za-z]{13})\/?$/.exec(pathname)?.[1];

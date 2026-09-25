@@ -88,7 +88,7 @@ so they point at `:3000`. After `npm start`, everything is on <http://localhost:
 All three must pass before pushing; CI runs the same.
 
 ```bash
-npm run check                  # typecheck + eslint + prettier
+npm run check                  # vp check (format, lint, TypeScript 7) + tsc
 npm test                       # unit + contract + integration + frontend
 npm audit --audit-level=high
 ```

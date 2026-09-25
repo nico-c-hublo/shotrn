@@ -41,7 +41,7 @@ npm run build && npm start   # backend serves frontend/dist at / and /p/:code
 ## Quality gate (constitution §Development Workflow)
 
 ```bash
-npm run check   # tsc --noEmit + eslint + prettier --check, both workspaces
+npm run check   # vp check (oxfmt, oxlint + tsgolint, TypeScript 7) + tsc --noEmit, both workspaces
 npm test        # unit + contract + integration (Testcontainers) + frontend
 npm audit --audit-level=high
 ```

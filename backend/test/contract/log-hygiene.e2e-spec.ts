@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import type { MockInstance } from 'vitest';
+import type { MockInstance } from 'vite-plus/test';
 import request from 'supertest';
 import { LinksRepository } from '../../src/links/links.repository';
 import { createTestApp, type TestApp } from '../setup/app';

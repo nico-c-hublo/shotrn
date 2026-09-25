@@ -67,7 +67,7 @@ collides is N / 62¹³ (5×10⁻¹⁷ at 10 million links).
 |---|---|---|
 | I. Simplicity First | Every dependency justified with rejected simpler alternative | PASS — see [research.md](research.md) §Dependencies; no plugin/adapter layers; one table; `sqids` removed, codes drawn with `node:crypto` |
 | I. Simplicity First | No speculative generality | PASS — the code generator is injected only so tests can force a collision |
-| II. Readable, Typed Code | `strict: true`, lint + format enforced by tooling | PASS — root ESLint (typescript-eslint) + Prettier, `npm run check` gates type/lint/format |
+| II. Readable, Typed Code | `strict: true`, lint + format enforced by tooling | PASS — Vite+ (`vp check`: oxfmt, oxlint with type-aware rules, TypeScript 7 type check) from one root `vite.config.ts`, plus `tsc`; `npm run check` gates type/lint/format |
 | III. Security by Default | Input validated at boundary with explicit schema | PASS — `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })` + custom `IsHttpUrl` validator using platform `URL` parser |
 | III. Security by Default | Scheme allow-list `http`/`https` | PASS — enforced in `url-validation.ts`, negative tests required |
 | III. Security by Default | Secrets via env, never logged | PASS — `DATABASE_URL` from env, validated at boot, redacted in logs; codes need no secret at all |

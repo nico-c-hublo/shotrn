@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
 
 /**
  * Vitest runs on Vite 8, whose Oxc transform emits the decorator metadata NestJS

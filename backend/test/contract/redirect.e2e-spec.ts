@@ -82,9 +82,10 @@ describe('GET /:code', () => {
 
   it('treats codes as case-sensitive', async () => {
     const code = await create('https://example.com/case');
-    const flipped = [...code]
-      .map((c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()))
-      .join('');
+    // Codes are ASCII, so splitting into characters is safe here.
+    const flipped = Array.from(code, (c) =>
+      c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase(),
+    ).join('');
 
     // An all-digit code has no case to flip; with 13 random characters that is ~5e-11.
     if (flipped !== code) await request(server()).get(`/${flipped}`).expect(404);
