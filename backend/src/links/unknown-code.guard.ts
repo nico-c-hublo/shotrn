@@ -2,6 +2,7 @@ import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/com
 import { ThrottlerException } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { clientKey } from '../common/client-key';
+import { isWellFormedCode } from './short-code';
 import { UnknownCodeLimiter } from './unknown-code-limiter';
 
 /** Applies the unknown-code budget (FR-020) to the routes that look a code up. */
@@ -11,8 +12,15 @@ export class UnknownCodeGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const http = context.switchToHttp();
+    const req = http.getRequest<Request>();
     const res = http.getResponse<Response>();
-    const admission = await this.limiter.admit(clientKey(http.getRequest<Request>().ip));
+
+    // A malformed code is answered 404 without a query, so it reveals nothing and is not a
+    // guess. Charging it would let /favicon.ico requests lock a visitor out.
+    const { code } = req.params;
+    if (typeof code !== 'string' || !isWellFormedCode(code)) return true;
+
+    const admission = await this.limiter.admit(clientKey(req.ip));
 
     if (!admission.admitted) {
       // Same convention as the throttler, so the exception filter picks it up for Retry-After.

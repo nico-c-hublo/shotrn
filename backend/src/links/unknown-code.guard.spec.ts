@@ -52,6 +52,15 @@ describe('UnknownCodeGuard', () => {
     expect(next.result?.admitted).toBe(true);
   });
 
+  it('leaves a malformed code out of the budget entirely', async () => {
+    const limiter = new UnknownCodeLimiter(1, 10 * 60 * 1000);
+    const admit = jest.spyOn(limiter, 'admit');
+    const guard = new UnknownCodeGuard(limiter);
+
+    expect(await guard.canActivate(fakeRequest('favicon.ico').context)).toBe(true);
+    expect(admit).not.toHaveBeenCalled();
+  });
+
   it('charges a lookup that answered 404', async () => {
     const limiter = new UnknownCodeLimiter(1, 10 * 60 * 1000);
     const guard = new UnknownCodeGuard(limiter);

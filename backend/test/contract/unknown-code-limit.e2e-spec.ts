@@ -22,16 +22,27 @@ describe('unknown-code limit', () => {
   const get = (path: string, ip = '203.0.113.1') =>
     request(server()).get(path).set('X-Forwarded-For', ip);
 
-  it('shares one budget between redirect and preview, counting malformed codes too', async () => {
+  it('shares one budget between redirect and preview', async () => {
     await get('/zzzzzzzzzzz').expect(404);
     await get('/api/links/zzzzzzzzzzy').expect(404);
-    await get('/short').expect(404);
+    await get('/zzzzzzzzzzw').expect(404);
 
     const refused = await get('/zzzzzzzzzzx').expect(429);
     expect(refused.body).toEqual({
       error: { code: 'RATE_LIMITED', message: 'Too many requests, slow down' },
     });
     expect(Number(refused.headers['retry-after'])).toBe(600);
+  });
+
+  // Browsers request /favicon.ico and similar paths on their own. A malformed code is
+  // answered without a query, so it reveals nothing and must not cost the visitor anything.
+  it('does not charge paths that cannot be codes', async () => {
+    for (let i = 0; i < 10; i++) {
+      for (const path of ['/favicon.ico', '/robots.txt', '/short', '/api/links/short']) {
+        await get(path).expect(404);
+      }
+    }
+    await get(`/${realCode}`).expect(301);
   });
 
   // Otherwise a guesser keeps guessing and only the refusals stop.

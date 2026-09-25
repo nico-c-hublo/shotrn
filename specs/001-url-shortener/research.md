@@ -177,6 +177,9 @@ stop.
   the redirect throttler already bounds how many requests a client can have queued.
 - A browser visit to an unknown code costs two misses (the page load, then the SPA's
   status fetch), so a person gets about ten typos per window.
+- Only well-formed codes are charged. A malformed path (`/favicon.ico`, `/robots.txt`)
+  is answered 404 without a query, so it reveals nothing; charging it let a browser's
+  own background requests lock a visitor out (code review of PR #3).
 
 **Rationale**: Spec FR-015 + assumption (60/h). In-memory store is per-instance; with N
 instances the effective limit is N× — acceptable for v1 abuse control and avoids a

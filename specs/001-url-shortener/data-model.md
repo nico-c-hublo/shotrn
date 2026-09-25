@@ -78,7 +78,7 @@ There is no delete, disable, or edit transition in v1.
 | Input | Outcome | HTTP |
 |---|---|---|
 | Client over its unknown-code budget | refused before lookup | 429 |
-| Not 11 characters of `[0-9A-Za-z]` | not found, no query issued; counts as a miss | 404 |
+| Not 11 characters of `[0-9A-Za-z]` | not found, no query issued; not charged (it reveals nothing) | 404 |
 | Well-formed, no row | not found; counts as a miss | 404 |
 | Row found, `status = active` | redirect (or preview JSON `LinkResponse`) | 301 (permanent) / 302 (temporary); preview 200 |
 | Row found, `status = expired` | expired page (or preview JSON `ExpiredLinkResponse`: `code`, `status`, `expiresAt`; never `originalUrl`) | 410 |

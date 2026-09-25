@@ -132,7 +132,8 @@ components:
       required: true
       description: >
         Case-sensitive short code, exactly 11 alphanumeric characters. Any other
-        value is answered 404 without a lookup, and still counts as an unknown code.
+        value is answered 404 without a lookup and is not charged against the
+        unknown-code limit.
       schema:
         type: string
         pattern: "^[0-9A-Za-z]{11}$"
