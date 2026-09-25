@@ -23,6 +23,12 @@ export class UnknownCodeGuard implements CanActivate {
     // 'finish' settles as soon as the status is final; 'close' covers a client that hangs up
     // first, so a reservation can never leak. Settling twice is a no-op.
     const settle = () => admission.settle(res.statusCode === 404);
+    if (res.destroyed) {
+      // The client left while this lookup waited in admit(): 'close' has already fired and
+      // would never reach a listener added now. Nobody will see the answer, so release it.
+      settle();
+      return true;
+    }
     res.once('finish', settle);
     res.once('close', settle);
     return true;
