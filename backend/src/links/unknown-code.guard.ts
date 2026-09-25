@@ -9,10 +9,10 @@ import { UnknownCodeLimiter } from './unknown-code-limiter';
 export class UnknownCodeGuard implements CanActivate {
   constructor(private readonly limiter: UnknownCodeLimiter) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const http = context.switchToHttp();
     const res = http.getResponse<Response>();
-    const admission = this.limiter.admit(clientKey(http.getRequest<Request>().ip));
+    const admission = await this.limiter.admit(clientKey(http.getRequest<Request>().ip));
 
     if (!admission.admitted) {
       // Same convention as the throttler, so the exception filter picks it up for Retry-After.

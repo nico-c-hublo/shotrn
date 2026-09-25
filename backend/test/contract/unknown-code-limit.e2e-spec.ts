@@ -83,4 +83,15 @@ describe('unknown-code limit', () => {
     expect(statuses.filter((status) => status === 404)).toHaveLength(3);
     expect(statuses.filter((status) => status === 429)).toHaveLength(17);
   });
+
+  // Found by the load check: refusing lookups merely because others were in flight turned
+  // a burst of real visitors behind one address into 429s.
+  it('lets concurrent hits from one client through, however many are in flight', async () => {
+    await ctx.app.listen(0);
+    const statuses = await Promise.all(
+      Array.from({ length: 50 }, () => get(`/${realCode}`).then((res) => res.status)),
+    );
+
+    expect(statuses).toEqual(Array(50).fill(301));
+  });
 });

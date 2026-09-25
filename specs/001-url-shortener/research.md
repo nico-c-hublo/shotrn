@@ -170,7 +170,11 @@ stop.
   after the lookup.
 - In-flight lookups count against the budget until they settle, and a hit refunds its
   reservation. Without that, a client could fire 600 concurrent guesses that all pass
-  the check before any of them is recorded as a miss.
+  the check before any of them is recorded as a miss. A lookup that *could* overrun the
+  budget waits for the in-flight ones to settle instead of being refused. The first
+  version refused it, and the load check caught the effect: 50 concurrent hits from one
+  address turned into 429s. Waiting costs a real visitor the length of one lookup, and
+  the redirect throttler already bounds how many requests a client can have queued.
 - A browser visit to an unknown code costs two misses (the page load, then the SPA's
   status fetch), so a person gets about ten typos per window.
 
