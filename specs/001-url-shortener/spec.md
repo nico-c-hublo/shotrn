@@ -5,8 +5,9 @@
 **Created**: 2026-09-21
 
 **Amended**: 2026-09-25 — short codes are unguessable bearer secrets rather than an
-obfuscated counter; unknown-code lookups are limited separately; expired links no
-longer reveal their destination (constitution 1.1.0, Principle III)
+obfuscated counter; expired links no longer reveal their destination (constitution
+1.1.0). Revised the same day: 13-character codes carry the guessing resistance, and
+the separate budget for unknown-code lookups is dropped (constitution 1.2.0)
 
 **Status**: Draft
 
@@ -31,7 +32,7 @@ a shareable short link.
 
 1. **Given** the visitor is on the home page, **When** they submit a valid `https://`
    URL of 2,000 characters, **Then** a short link is displayed within the page along
-   with a one-click "copy" action, and the short link's path is exactly 11
+   with a one-click "copy" action, and the short link's path is exactly 13
    characters.
 2. **Given** the visitor submits a URL that has already been shortened by someone else,
    **When** the submission completes, **Then** a new, distinct short link is issued
@@ -148,11 +149,11 @@ link and verifying the full original URL is displayed without any redirect.
   no code is ever issued twice.
 - A freshly drawn code happens to equal one already issued: the service draws another
   before answering; the visitor never sees the clash.
-- A visitor opens many short codes that do not exist (typing mistakes, or someone
-  guessing): after a small number within a time window, further lookups from that
-  visitor are refused with a "slow down" message, while visitors following real links
-  are unaffected. Rotating through the addresses of one IPv6 network does not reset
-  the count.
+- A visitor opens short codes very rapidly (hundreds per minute, e.g. someone
+  guessing): further lookups from that visitor are temporarily refused with a "slow
+  down" message, while other visitors are unaffected. Rotating through the addresses
+  of one IPv6 network does not reset the count. Mistyped codes are treated like any
+  other lookup: a visitor is never locked out for opening codes that do not exist.
 - The service restarts between creating a short link and following it: the link still
   works (short links are durable).
 - A visitor rapidly submits many links (hundreds per minute): further submissions
@@ -177,7 +178,7 @@ link and verifying the full original URL is displayed without any redirect.
   itself.
 - **FR-005**: Every issued short code MUST be unique; the system MUST never issue the
   same code for two different original URLs.
-- **FR-006**: Short codes MUST be exactly 11 characters, composed only of unaccented
+- **FR-006**: Short codes MUST be exactly 13 characters, composed only of unaccented
   letters and digits, and MUST be case-sensitive.
 - **FR-007**: Short codes MUST be unguessable. Each code is drawn independently at
   random, so knowing any number of issued codes gives no information about any other,
@@ -213,11 +214,11 @@ link and verifying the full original URL is displayed without any redirect.
 - **FR-019**: The system MUST expose its shortening capability in a way that can be
   driven programmatically as well as through the web interface, so that it can be
   integrated by scripts and other tools using the same validation rules.
-- **FR-020**: The system MUST limit how many unknown short codes a single visitor can
-  look up (by following or previewing) within a time window, counted separately from
-  successful lookups, and MUST refuse further lookups from that visitor with a clear
-  message until the window ends. Visitors on IPv6 are counted per /64 network, so
-  rotating addresses within one allocation does not escape the limit.
+- **FR-020**: The system MUST limit how many short codes a single visitor can look up
+  (by following or previewing) within a time window, and MUST refuse excess lookups
+  with a clear message, without affecting other visitors. Visitors on IPv6 are counted
+  per /64 network, so rotating addresses within one allocation does not escape the
+  limit. The response to a refused lookup MUST NOT depend on whether the code exists.
 
 ### Key Entities
 
@@ -248,7 +249,7 @@ link and verifying the full original URL is displayed without any redirect.
   with links expiring at boundaries of 1 second.
 - **SC-007**: After an unplanned restart, 100% of previously issued, unexpired links
   continue to redirect correctly.
-- **SC-008**: Every short link path is exactly 11 characters, making a full short link
+- **SC-008**: Every short link path is exactly 13 characters, making a full short link
   under 30 characters for a typical short domain.
 - **SC-009**: With 10 million links issued, 10,000 coordinated visitors each guessing at
   the highest rate FR-020 allows find, in expectation, fewer than one link per year.
@@ -272,12 +273,14 @@ link and verifying the full original URL is displayed without any redirect.
   30 days so the "expired" page can be shown instead of "not found"; after that they
   may be purged. Purging is an operational concern outside this spec.
 - **Duplicate originals**: No deduplication (FR-018). Duplicate records are an
-  accepted cost: with 11 alphanumeric characters there are ~5.2×10¹⁹ possible codes,
+  accepted cost: with 13 alphanumeric characters there are ~2.0×10²³ possible codes,
   and per-link expiry makes sharing a code between submitters impractical.
 - **Threat model**: An original URL may be private (a shared document, an unlisted
   video). The short code is the only credential that unlocks it, so it is treated as a
-  secret: 11 random alphanumeric characters carry ~65 bits of entropy, above the
-  64-bit floor commonly required of bearer tokens such as session identifiers.
+  secret: 13 random alphanumeric characters carry ~77 bits of entropy, well above the
+  64-bit floor commonly required of bearer tokens such as session identifiers. The
+  entropy, not a lockout, is what defeats guessing: refusing a visitor who guesses
+  would also lock out everyone sharing their address.
   Anyone who holds a code may see its destination; the preview view is intended for
   exactly those people.
 - **Single short domain**: The service runs on one domain; multi-domain / branded
