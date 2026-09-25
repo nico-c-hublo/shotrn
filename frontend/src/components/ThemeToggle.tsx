@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { DEVICE_DARK, pickTheme, storedTheme, type Theme } from '../theme';
 
 export function ThemeToggle() {
@@ -16,8 +17,18 @@ export function ThemeToggle() {
   const active: Theme = picked ?? (deviceDark ? 'dark' : 'light');
 
   function pick(theme: Theme): void {
-    pickTheme(theme);
-    setPicked(theme);
+    // Flushed so the highlight moves inside the snapshot, not after the fade.
+    const apply = () =>
+      flushSync(() => {
+        pickTheme(theme);
+        setPicked(theme);
+      });
+
+    // A view transition cross-fades the whole page, native controls included, which a
+    // CSS transition cannot reach (research.md §13). Older browsers switch instantly.
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if ('startViewTransition' in document && !reduceMotion) document.startViewTransition(apply);
+    else apply();
   }
 
   return (

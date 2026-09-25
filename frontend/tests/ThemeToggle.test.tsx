@@ -7,6 +7,7 @@ import { applyStoredTheme } from '../src/theme';
 // jsdom implements no media queries, so the device's scheme is a stub whose change
 // listeners the tests can fire.
 let deviceDark = false;
+let reducedMotion = false;
 const listeners = new Set<(event: { matches: boolean }) => void>();
 
 function setDeviceDark(dark: boolean): void {
@@ -22,9 +23,12 @@ const html = document.documentElement;
 describe('ThemeToggle', () => {
   beforeEach(() => {
     deviceDark = false;
+    reducedMotion = false;
     listeners.clear();
     vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: deviceDark && query === '(prefers-color-scheme: dark)',
+      matches:
+        (deviceDark && query === '(prefers-color-scheme: dark)') ||
+        (reducedMotion && query === '(prefers-reduced-motion: reduce)'),
       addEventListener: (_: string, listener: (event: { matches: boolean }) => void) =>
         listeners.add(listener),
       removeEventListener: (_: string, listener: (event: { matches: boolean }) => void) =>
@@ -37,6 +41,8 @@ describe('ThemeToggle', () => {
     vi.restoreAllMocks();
     localStorage.clear();
     delete html.dataset.theme;
+    // Only some tests give jsdom the View Transitions API.
+    Reflect.deleteProperty(document, 'startViewTransition');
   });
 
   it('marks the device scheme active until the visitor picks one', () => {
@@ -113,5 +119,38 @@ describe('ThemeToggle', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
     expect(html.dataset.theme).toBe('dark');
     expect(pressed('Dark mode')).toBe(true);
+  });
+
+  describe('with the View Transitions API', () => {
+    // Records what the page looked like when the new snapshot would be taken.
+    let seen: { theme?: string; darkPressed: boolean }[];
+
+    beforeEach(() => {
+      seen = [];
+      Object.defineProperty(document, 'startViewTransition', {
+        configurable: true,
+        value: vi.fn((update: () => void) => {
+          update();
+          seen.push({ theme: html.dataset.theme, darkPressed: pressed('Dark mode') });
+        }),
+      });
+    });
+
+    it('cross-fades a pick, highlight included', async () => {
+      render(<ThemeToggle />);
+      await userEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
+
+      expect(seen).toEqual([{ theme: 'dark', darkPressed: true }]);
+    });
+
+    it('switches without a fade when reduced motion is asked for', async () => {
+      reducedMotion = true;
+      render(<ThemeToggle />);
+      await userEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
+
+      expect(seen).toEqual([]);
+      expect(html.dataset.theme).toBe('dark');
+      expect(pressed('Dark mode')).toBe(true);
+    });
   });
 });
