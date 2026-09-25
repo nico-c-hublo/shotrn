@@ -250,8 +250,8 @@ from one client exhaust its budget and the 21st lookup, even of a real code, ret
 
 ### Verification
 
-- [ ] T095 Re-run the load check (`npm run load -w backend`) with the new codes and record the result in [load-results.md](load-results.md)
-- [ ] T096 Run `npm run check` and `npm test` from a clean checkout and confirm the collected test count grew by the new suites
+- [X] T095 Re-run the load check (`npm run load -w backend`) with the new codes and record the result in [load-results.md](load-results.md)
+- [X] T096 Run `npm run check` and `npm test` from a clean checkout and confirm the collected test count grew by the new suites
 
 **Checkpoint**: Codes are unguessable, guessing is bounded per client, and no response
 reveals a destination to someone who does not hold its code
