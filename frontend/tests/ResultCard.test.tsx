@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { ResultCard } from '../src/components/ResultCard';
 import type { LinkResponse } from '../src/api/links';
 
@@ -15,6 +15,23 @@ const permanent: LinkResponse = {
 };
 
 describe('ResultCard', () => {
+  const scrollIntoView = vi.fn();
+  let reducedMotion = false;
+
+  // jsdom has no layout engine, so it implements neither.
+  beforeEach(() => {
+    scrollIntoView.mockClear();
+    reducedMotion = false;
+    Element.prototype.scrollIntoView = scrollIntoView;
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: reducedMotion && query === '(prefers-reduced-motion: reduce)',
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   // FR-010. userEvent.setup() installs a real clipboard stub, so this asserts the
   // clipboard's actual contents rather than that a mock was called.
   it('shows the full short url and copies it in one action', async () => {
@@ -32,6 +49,37 @@ describe('ResultCard', () => {
   it('says so when a link never expires', () => {
     render(<ResultCard link={permanent} />);
     expect(screen.getByText('This link never expires.')).toBeInTheDocument();
+  });
+
+  // FR-010: on a small screen, or with the on-screen keyboard open, a new result renders
+  // below the fold, and shortening looks like it did nothing.
+  it('brings a new result into view and focuses the copy button', () => {
+    render(<ResultCard link={permanent} />);
+
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+    expect(scrollIntoView.mock.contexts[0]).toBe(
+      screen.getByRole('region', { name: 'Your short link' }),
+    );
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+    expect(screen.getByRole('button', { name: 'Copy' })).toHaveFocus();
+  });
+
+  it('scrolls without animation when reduced motion is asked for', () => {
+    reducedMotion = true;
+    render(<ResultCard link={permanent} />);
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'nearest' });
+  });
+
+  it('scrolls again for the next link, but not when the card merely re-renders', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<ResultCard link={permanent} />);
+
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+
+    rerender(<ResultCard link={{ ...permanent, code: 'Zq8w3E1rT5y7U' }} />);
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
   });
 
   // FR-012

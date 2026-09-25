@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { LinkResponse } from '../api/links';
 import { formatAbsolute } from '../format';
@@ -9,6 +9,17 @@ interface Props {
 
 export function ResultCard({ link }: Props) {
   const [copied, setCopied] = useState(false);
+  const card = useRef<HTMLElement>(null);
+  const copyButton = useRef<HTMLButtonElement>(null);
+
+  // On a small screen, or with the on-screen keyboard open, a new result renders below
+  // the fold and shortening looks like it did nothing (FR-010). Focusing the copy button
+  // also closes that keyboard and tells a screen reader the result has arrived.
+  useEffect(() => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    copyButton.current?.focus({ preventScroll: true });
+    card.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
+  }, [link]);
 
   async function copy(): Promise<void> {
     try {
@@ -20,7 +31,7 @@ export function ResultCard({ link }: Props) {
   }
 
   return (
-    <section className="card result" aria-label="Your short link">
+    <section ref={card} className="card result" aria-label="Your short link">
       <p className="short-url">{link.shortUrl}</p>
 
       {/* Fixed colours ignore dark mode: many scanners cannot read an inverted code, and
@@ -37,7 +48,7 @@ export function ResultCard({ link }: Props) {
 
       <div className="result-details">
         {/* copy() handles its own failure; `void` marks the promise as deliberately unawaited. */}
-        <button type="button" onClick={() => void copy()}>
+        <button ref={copyButton} type="button" onClick={() => void copy()}>
           {copied ? 'Copied!' : 'Copy'}
         </button>
 
