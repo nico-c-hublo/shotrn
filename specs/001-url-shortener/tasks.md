@@ -304,14 +304,15 @@ the repository (2026-09-25) ran all 105 backend tests and 20 frontend tests unde
 `vp test`, since Oxc emits the decorator metadata NestJS injection needs, and `vp lint`
 enforced every current rule, verified with planted violations. It also found the
 prerequisites below. Vite+ is at `1.0.0-rc.0`; that risk is recorded in research §8
-when it is adopted (T119).
+when it is adopted (T120).
 
 - [X] T115 Upgrade the frontend from Vitest 3 to Vitest 4; `vp migrate` refuses to run on Vitest 3. Vite stays at 6, which Vitest 4 still supports
 - [X] T116 Make both tsconfigs valid for TypeScript 7, which Vite+ type-checks with: backend `moduleResolution` `node` → `node16` (with `module` `node16`, and `isolatedModules`, which Node16 module mode needs under ts-jest and which Oxc's per-file compilation assumes), no `baseUrl`; frontend loads the `vite/client` types
 - [X] T117 Rename the backend's `BASE_URL` variable: Vite and Vitest set `process.env.BASE_URL` to `/` themselves, which broke every backend test in the trial
-- [ ] T118 Move the backend tests from Jest to Vitest (`jest.*` → `vi.*`, global setup and timeouts in config), dropping Jest and ts-jest
-- [ ] T119 Adopt Vite+: `vp migrate`, a root `vite.config.ts` carrying the lint rules (the effective ESLint rules, with all 16 React hooks rules through `eslint-plugin-react-hooks` under an alias) and the format settings; scripts and CI on `vp check` and `vp test`; remove ESLint, Prettier and typescript-eslint; justify the dependency and its release-candidate risk in research §8
-- [ ] T120 Verify parity with planted violations (a type error, `any`, an unawaited supertest call, a missing effect dependency) and a green CI run
+- [X] T118 Upgrade Vite 6 → 8 (and `@vitejs/plugin-react` 4 → 6). Vite 6 transforms TypeScript with esbuild, which drops decorator metadata; Vite 8 uses Oxc, which emits it. Without this, NestJS injection breaks under Vitest (a probe fails on Vite 6.4.3 and passes on 8.3.1). One Vite for the whole repository, because the workspaces share one Vitest
+- [ ] T119 Move the backend tests from Jest to Vitest (`jest.*` → `vi.*`, global setup and timeouts in config), dropping Jest and ts-jest
+- [ ] T120 Adopt Vite+: `vp migrate`, a root `vite.config.ts` carrying the lint rules (the effective ESLint rules, with all 16 React hooks rules through `eslint-plugin-react-hooks` under an alias) and the format settings; scripts and CI on `vp check` and `vp test`; remove ESLint, Prettier and typescript-eslint; justify the dependency and its release-candidate risk in research §8
+- [ ] T121 Verify parity with planted violations (a type error, `any`, an unawaited supertest call, a missing effect dependency) and a green CI run
 
 ---
 
