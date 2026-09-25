@@ -1,18 +1,21 @@
 <!--
 Sync Impact Report
-- Version change: (template, unversioned) → 1.0.0
-- Modified principles: none (initial ratification)
-- Added sections:
-  - Core Principles: I. Simplicity First; II. Readable, Typed Code;
-    III. Security by Default (NON-NEGOTIABLE); IV. Tests Prove Behaviour;
-    V. Small, Reviewable Changes
-  - Security Requirements
-  - Development Workflow & Quality Gates
-  - Governance
+- Version change: 1.0.0 → 1.1.0 (MINOR: materially expanded security guidance)
+- Modified principles:
+  - III. Security by Default: the identifier rule no longer accepts encoding that is
+    merely "non-guessable to a casual observer" over a sequential counter. Short codes
+    are now bearer secrets (CSPRNG, ≥ 64 bits of entropy, not derived from any value
+    whose disclosure would reveal them). Added rules for rate limiting unknown-code
+    lookups per client and IPv6 /64, and for withholding the destination of expired
+    links.
+- Risk statement: none required; every change strengthens a security rule.
+- Added sections: none
 - Removed sections: none
 - Templates requiring updates: none (plan/spec/tasks templates read the
-  constitution at runtime; no placeholders in them reference removed content)
-- Follow-up TODOs: none
+  constitution at runtime)
+- Follow-up TODOs: specs/001-url-shortener (spec, plan, research, data model,
+  contract, tasks) and CLAUDE.md still describe Sqids-derived codes and must be
+  amended before implementation.
 -->
 
 # Shotrn Constitution
@@ -71,9 +74,15 @@ MUST be treated as an attack surface at every layer.
   service never constructs a redirect from user input at request time.
 - Secrets (database credentials, API keys, salts) MUST be supplied via environment or a
   secret store and MUST NEVER be committed, logged, or returned in responses.
-- Short identifiers MUST NOT be trivially enumerable in sequence; the identifier
-  encoding MUST be non-guessable to a casual observer even if the underlying counter
-  is sequential.
+- Short codes are bearer secrets: knowing a code is the only way to learn its
+  destination. Codes MUST be drawn from a cryptographically secure random source with
+  at least 64 bits of entropy, and MUST NOT be derived from a counter, a key, or any
+  other value whose disclosure would let codes be computed.
+- Looking up codes that do not exist MUST be rate limited per client, separately from
+  successful lookups, and a client MUST NOT be able to escape that limit by rotating
+  addresses within one network allocation (an IPv6 /64).
+- A response about a link that can no longer be followed (expired) MUST NOT reveal its
+  destination.
 - Every public write endpoint MUST be rate-limited. Every response MUST carry
   baseline security headers (no-sniff, frame denial, strict referrer policy).
 - Dependencies are pinned via lockfile and audited; a known high/critical vulnerability
@@ -183,4 +192,4 @@ principle here, the principle wins.
   repository's agent context file (e.g. `CLAUDE.md`); it MUST NOT contradict this
   constitution and is updated when the constitution changes.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
+**Version**: 1.1.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-25
