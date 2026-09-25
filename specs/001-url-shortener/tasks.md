@@ -285,8 +285,8 @@ checks it enforces. The workflow from T010 never ran: it triggered on pushes to 
 which does not exist, and GitHub reported no workflow for the repository, so PR #3
 merged without CI.
 
-- [ ] T107 Rework `.github/workflows/ci.yml`: trigger on pushes to `master` and on pull requests; `permissions: contents: read`; cancel superseded runs; per-job timeouts; separate `quality` (typecheck, lint, format), `test` (production build, then the full suite, so the static-assets test runs instead of skipping) and `audit` jobs, with the audit also on a weekly schedule; actions pinned to commit SHAs; Node from `.nvmrc`
-- [ ] T108 Add `.nvmrc` pinning Node 22, the plan's target platform
+- [X] T107 Rework `.github/workflows/ci.yml`: trigger on pushes to `master` and on pull requests; `permissions: contents: read`; cancel superseded runs; per-job timeouts; separate `quality` (typecheck, lint, format), `test` (production build, then the full suite, so the static-assets test runs instead of skipping) and `audit` jobs, with the audit also on a weekly schedule; actions pinned to commit SHAs; Node from `.nvmrc`
+- [X] T108 Add `.nvmrc` pinning Node 22, the plan's target platform
 - [ ] T109 Switch ESLint to type-aware rules (`recommendedTypeChecked`) and fix the findings in source. Relax only the `no-unsafe-*` and `require-await` rules in tests, where supertest bodies are untyped JSON; promise rules such as `no-floating-promises` stay on everywhere
 - [ ] T110 Add `eslint-plugin-react-hooks` for the frontend (rules of hooks, exhaustive deps); justify the dependency in research §8
 - [ ] T111 Enable `noUncheckedIndexedAccess` and `noImplicitOverride` in both workspaces and fix the findings
