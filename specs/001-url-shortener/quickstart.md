@@ -14,7 +14,7 @@ contain implementation code.
 ## Setup
 
 ```bash
-cp .env.example .env            # then set SQIDS_ALPHABET (see below) and BASE_URL
+cp .env.example .env            # then set BASE_URL if not localhost
 npm install                     # installs both workspaces
 docker compose up -d postgres   # local dev database
 npm run db:migrate -w backend   # applies drizzle migrations
@@ -26,10 +26,10 @@ Environment variables (all validated at boot; missing/invalid ⇒ process exits)
 |---|---|---|
 | `DATABASE_URL` | `postgres://app:app@localhost:5432/shotrn` | App role: SELECT/INSERT only |
 | `BASE_URL` | `http://localhost:3000` | Used for `shortUrl` and self-reference check |
-| `SQIDS_ALPHABET` | 62-char shuffle of `[0-9A-Za-z]` | Generate once: `node -e "console.log([...'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].sort(()=>Math.random()-0.5).join(''))"`. **Never change after launch** — it breaks every issued link. |
 | `PORT` | `3000` | |
 | `RATE_LIMIT_CREATE_PER_HOUR` | `60` | FR-015 |
 | `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600` | |
+| `RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES` | `20` | FR-020; shared by `/:code` and `/api/links/:code` |
 
 ## Run
 
@@ -58,7 +58,7 @@ Replace `$B` with your `BASE_URL`.
 ```bash
 curl -s -X POST $B/api/links -H 'content-type: application/json' \
   -d '{"url":"https://example.com/very/long/path?x=1#frag"}'
-# expect 201, body with code (6 chars), shortUrl, expiresAt: null, status: active
+# expect 201, body with code (11 chars), shortUrl, expiresAt: null, status: active
 
 curl -s -X POST $B/api/links -H 'content-type: application/json' -d '{"url":"javascript:alert(1)"}'
 # expect 400 { error: { code: INVALID_URL, message mentions http/https } }
@@ -78,7 +78,7 @@ curl -s -X POST $B/api/links -H 'content-type: application/json' -d "{\"url\":\"
 curl -si $B/<code> | head -5
 # expect 301, Location: https://example.com/very/long/path?x=1#frag, Cache-Control: public, max-age=86400
 
-curl -si $B/zzzzzz | head -1        # expect 404 (HTML page, no Location header)
+curl -si $B/zzzzzzzzzzz | head -1   # expect 404 (HTML page, no Location header)
 curl -si $B/<CODE-in-other-case>    # expect 404 — codes are case-sensitive
 ```
 
@@ -90,6 +90,7 @@ curl -s -X POST $B/api/links -H 'content-type: application/json' -d '{"url":"htt
 curl -si $B/<code> | head -3        # expect 302 + Cache-Control: no-store
 # After expiry (or with a test that sets expires_at in the past):
 curl -si $B/<code> | head -1        # expect 410, HTML "expired" page, no Location
+curl -s $B/api/links/<code>         # expect 410 { code, status: expired, expiresAt } — no originalUrl
 ```
 
 ### US4 — Preview
@@ -97,7 +98,7 @@ curl -si $B/<code> | head -1        # expect 410, HTML "expired" page, no Locati
 ```bash
 curl -s $B/api/links/<code>          # 200 JSON with originalUrl, createdAt, expiresAt, status
 open $B/p/<code>                     # page shows destination without redirecting
-curl -s -o /dev/null -w '%{http_code}' $B/api/links/zzzzzz   # 404
+curl -s -o /dev/null -w '%{http_code}' $B/api/links/zzzzzzzzzzz   # 404
 ```
 
 ### Rate limiting (FR-015)
@@ -106,6 +107,14 @@ curl -s -o /dev/null -w '%{http_code}' $B/api/links/zzzzzz   # 404
 for i in $(seq 1 61); do curl -s -o /dev/null -w '%{http_code}\n' -X POST $B/api/links \
   -H 'content-type: application/json' -d '{"url":"https://example.com/"}'; done | sort | uniq -c
 # expect 60× 201 and 1× 429 (with Retry-After); redirects still work meanwhile
+```
+
+### Unknown-code limit (FR-020)
+
+```bash
+for i in $(seq 1 21); do curl -s -o /dev/null -w '%{http_code}\n' $B/zzzzzzzzz$(printf %02d $i); done | sort | uniq -c
+# expect 20× 404 and 1× 429 (Retry-After up to 600)
+curl -si $B/<real-code> | head -1   # expect 429 too: the budget blocks every lookup, hits included
 ```
 
 ### Durability (FR-014)
@@ -127,23 +136,24 @@ from the plan's structure.
 | FR-002 | same | rejects `ftp:`, `javascript:`, `data:`, `file:`, scheme-less input with 400 INVALID_URL |
 | FR-003 | same | rejects 2049-char URL, accepts 2048-char URL; message contains "2048" |
 | FR-004 | same | rejects URL whose host equals BASE_URL host |
-| FR-005, SC-004 | `test/integration/links.repository.e2e-spec.ts` | 10,000 concurrent inserts yield 10,000 distinct ids |
-| FR-006 | `src/links/short-code.spec.ts` | encode(1..1e6) all match `^[0-9A-Za-z]{6,10}$` |
-| FR-007 | `src/links/short-code.spec.ts` | encode(n) and encode(n+1) differ in more than the last char for 1000 samples |
+| FR-005, SC-004 | `test/integration/links.repository.e2e-spec.ts` + `src/links/links.service.spec.ts` | 10,000 concurrent creations yield 10,000 distinct codes; a duplicate code is refused without overwriting; a clash is answered with a fresh draw |
+| FR-006, SC-008 | `src/links/short-code.spec.ts` | generated codes match `^[0-9A-Za-z]{11}$`; every alphabet character reachable at every position |
+| FR-007 | `src/links/short-code.spec.ts` + `test/contract/create-link.e2e-spec.ts` | codes come from `crypto.randomInt`, not from any counter; no configuration value reproduces them |
 | FR-008 | `test/contract/redirect.e2e-spec.ts` | Location equals original incl. query and fragment; IDN and percent-encoded paths round-trip |
-| FR-009 | same | unknown code → 404, no Location; non-canonical decodable string → 404 |
+| FR-009 | same | unknown code → 404, no Location; malformed code → 404 without a query |
 | FR-010 | `frontend/tests/ResultCard.test.tsx` | shows full short URL; copy button writes to clipboard |
 | FR-011 | `test/contract/create-link.e2e-spec.ts` + `src/links/expiry.spec.ts` | each option maps to correct offset; absent ⇒ null; unknown ⇒ 400 |
 | FR-012 | `frontend/tests/ResultCard.test.tsx` | renders absolute expiry date/time for temporary link |
-| FR-013 | `test/contract/redirect.e2e-spec.ts` | expired link → 410, no Location; 1 s before expiry → 302 |
+| FR-013 | `test/contract/redirect.e2e-spec.ts` + `test/contract/preview.e2e-spec.ts` + `frontend/tests/PreviewCard.test.tsx` | expired link → 410, no Location; 1 s before expiry → 302; expired preview body and page never contain the original URL |
 | FR-014 | `test/integration/links.repository.e2e-spec.ts` | link readable after pool reconnect / container restart |
 | FR-015 | `test/contract/create-link.e2e-spec.ts` | 61st create in window → 429 with Retry-After; GET /:code unaffected |
 | FR-016 | `test/contract/preview.e2e-spec.ts` | GET /api/links/:code returns metadata, never redirects; 404/410 parity with redirect |
 | FR-017 | `test/contract/*.e2e-spec.ts` | forced repository failure → 500 `{ error: { code: INTERNAL } }` with no stack or SQL in body |
 | FR-018 | `test/contract/create-link.e2e-spec.ts` | posting the same URL twice yields two different codes |
 | FR-019 | `contracts/openapi.yaml` | contract tests assert response shapes against the schema |
+| FR-020, SC-009 | `test/contract/unknown-code-limit.e2e-spec.ts` + `src/links/unknown-code-limiter.spec.ts` + `src/common/client-key.spec.ts` | budget shared by redirect and preview; exhausted budget refuses hits too; hits do not consume it; concurrent guesses cannot overrun it; IPv6 addresses in one /64 share a budget |
 | Security headers | `test/contract/redirect.e2e-spec.ts` | `X-Content-Type-Options`, `X-Frame-Options`/CSP, `Referrer-Policy` present on every response |
-| Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL/SQIDS_ALPHABET; log output never contains their values |
+| Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL; log output never contains its value |
 
 ## Expected outcome
 
