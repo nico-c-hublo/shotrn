@@ -9,6 +9,7 @@ export interface Env {
   readonly port: number;
   readonly rateLimitCreatePerHour: number;
   readonly rateLimitRedirectPerMinute: number;
+  readonly rateLimitUnknownCodePer10Minutes: number;
 }
 
 export const ENV = Symbol('ENV');
@@ -75,6 +76,13 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     problems,
   );
 
+  const rateLimitUnknownCodePer10Minutes = requirePositiveInt(
+    source,
+    'RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES',
+    20,
+    problems,
+  );
+
   if (problems.length > 0) throw new EnvValidationError(problems);
 
   return {
@@ -84,5 +92,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     port,
     rateLimitCreatePerHour,
     rateLimitRedirectPerMinute,
+    rateLimitUnknownCodePer10Minutes,
   };
 }

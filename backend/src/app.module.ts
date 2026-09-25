@@ -2,6 +2,7 @@ import { Module, type DynamicModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { Pool } from 'pg';
+import { IPV6_CLIENT_PREFIX } from './common/client-key';
 import { ENV, loadEnv, type Env } from './config/env';
 import { createDatabase, createPool, DATABASE, DATABASE_POOL } from './db/client';
 import { LinksModule } from './links/links.module';
@@ -38,10 +39,9 @@ export class AppModule {
             { name: 'create', ttl: 60 * 60 * 1000, limit: env.rateLimitCreatePerHour },
             { name: 'redirect', ttl: 60 * 1000, limit: env.rateLimitRedirectPerMinute },
           ],
-          // Clients are keyed per IPv4 address or IPv6 /64, so rotating addresses within one
-          // allocation resets no limit (research.md §6). 64 is the library default since
-          // 6.7; stating it keeps a future default from silently loosening FR-020.
-          ipv6SubnetPrefix: 64,
+          // 64 is the library default since 6.7; stating it keeps a future default from
+          // silently loosening FR-020.
+          ipv6SubnetPrefix: IPV6_CLIENT_PREFIX,
         }),
         LinksModule,
       ],

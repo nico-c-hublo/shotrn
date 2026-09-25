@@ -19,7 +19,10 @@ GET  /k9Xz2QmB7rT  →  format check  →  SELECT by primary key  →  301/302
 
 Nothing derives a code (no counter, key or alphabet), so no configuration value or leak
 short of the database itself lets anyone compute one. The only attack left is guessing
-among 62¹¹ ≈ 5.2×10¹⁹ codes (~65.5 bits).
+among 62¹¹ ≈ 5.2×10¹⁹ codes (~65.5 bits), and each client (IPv4 address or IPv6 /64)
+may look up only 20 unknown codes per 10 minutes before every lookup it makes is
+refused. With 10 million links, 10,000 coordinated clients would find about 0.002
+links a year. An expired link says when it expired, never where it pointed.
 
 A clash with an existing code is reported by the insert as an empty result, and the
 service draws again. The odds are about 2×10⁻¹³ per draw at 10 million links, so three
@@ -60,13 +63,14 @@ it: an exported variable takes precedence over the file.
 
 ### Environment
 
-| Variable                         | Example                                    | Notes                                            |
-| -------------------------------- | ------------------------------------------ | ------------------------------------------------ |
-| `DATABASE_URL`                   | `postgres://app:app@localhost:5432/shotrn` | App role needs only `SELECT`/`INSERT`            |
-| `BASE_URL`                       | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check |
-| `PORT`                           | `3000`                                     |                                                  |
-| `RATE_LIMIT_CREATE_PER_HOUR`     | `60`                                       | Per client: IPv4 address or IPv6 /64             |
-| `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600`                                      | Per client: IPv4 address or IPv6 /64             |
+| Variable                                 | Example                                    | Notes                                                                                                |
+| ---------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                           | `postgres://app:app@localhost:5432/shotrn` | App role needs only `SELECT`/`INSERT`                                                                |
+| `BASE_URL`                               | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check                                                     |
+| `PORT`                                   | `3000`                                     |                                                                                                      |
+| `RATE_LIMIT_CREATE_PER_HOUR`             | `60`                                       | Per client: IPv4 address or IPv6 /64                                                                 |
+| `RATE_LIMIT_REDIRECT_PER_MINUTE`         | `600`                                      | Per client: IPv4 address or IPv6 /64                                                                 |
+| `RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES` | `20`                                       | Per client, redirect and preview combined. Once spent, every lookup is refused until the window ends |
 
 ## Run
 
@@ -137,9 +141,9 @@ Each choice is justified, with alternatives considered, in
 
 ## Assumptions & shortcuts
 
-- **Rate limits are per instance.** `@nestjs/throttler` uses its in-memory store, so
-  with N backend instances the effective limit is N× the configured one. Acceptable for
-  v1 abuse control; a Redis store is the upgrade path (§6).
+- **Rate limits are per instance.** `@nestjs/throttler` and the unknown-code limiter keep
+  their counts in memory, so with N backend instances the effective limit is N× the
+  configured one. Acceptable for v1 abuse control; a Redis store is the upgrade path (§6).
 - **One reverse proxy in front.** `trust proxy` is set to `1`, so client IPs (and
   therefore rate-limit keys) are only correct behind exactly one proxy. Adjust it in
   `backend/src/main.ts` for other topologies.

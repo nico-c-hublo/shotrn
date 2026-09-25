@@ -100,6 +100,9 @@ weaken one without amending the constitution first.
 - Both public paths are rate limited, on separate throttlers so creation limits cannot
   block redirects. Clients are keyed per IPv4 address or IPv6 /64
   (`ipv6SubnetPrefix: 64`), so rotating addresses in one allocation resets nothing.
+- Unknown-code lookups have their own budget (`UnknownCodeGuard`), shared by `/:code`
+  and `/api/links/:code`. Any new route that looks a code up must use the guard, or it
+  becomes a free guessing oracle.
 
 ## Style
 

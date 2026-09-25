@@ -22,6 +22,7 @@ describe('documented .env flow', () => {
       'PORT',
       'RATE_LIMIT_CREATE_PER_HOUR',
       'RATE_LIMIT_REDIRECT_PER_MINUTE',
+      'RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES',
     ]) {
       expect(contents).toContain(`${name}=`);
     }
