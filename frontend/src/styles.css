@@ -1,26 +1,25 @@
 :root {
-  --bg: #fbfbfd;
-  --fg: #16161a;
-  --muted: #5c5c66;
-  --accent: #2f5bea;
+  /* Each token is light-dark(light, dark); color-scheme below picks the half, which lets
+     the toggle override the device without restating the dark palette (research.md §13). */
+  --bg: light-dark(#fbfbfd, #16161a);
+  --fg: light-dark(#16161a, #f2f2f5);
+  --muted: light-dark(#5c5c66, #a0a0ad);
+  --accent: light-dark(#2f5bea, #8fa8ff);
   /* Text drawn on the accent. Dark mode lightens the accent for links, which leaves
      white labels at 2.28:1, so labels there switch to the dark background (7.92:1). */
-  --on-accent: #ffffff;
-  --border: #dcdce4;
-  --error: #b4232b;
+  --on-accent: light-dark(#ffffff, #16161a);
+  --border: light-dark(#dcdce4, #32323c);
+  --error: light-dark(#b4232b, #ff8f92);
   color-scheme: light dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16161a;
-    --fg: #f2f2f5;
-    --muted: #a0a0ad;
-    --accent: #8fa8ff;
-    --on-accent: #16161a;
-    --border: #32323c;
-    --error: #ff8f92;
-  }
+/* A pick from the toggle (FR-023); without one the device decides. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {

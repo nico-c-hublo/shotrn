@@ -1,16 +1,8 @@
 import { describe, expect, it } from 'vite-plus/test';
 import css from '../src/styles.css?raw';
 
-// FR-022. jsdom neither applies stylesheets nor evaluates prefers-color-scheme, so the
-// colour tokens are read from the stylesheet and each scheme is resolved by hand.
-
-function tokens(block: string): Record<string, string> {
-  const found: Record<string, string> = {};
-  for (const [, name, value] of block.matchAll(/(--[\w-]+):\s*(#[0-9a-f]{6})\b/gi)) {
-    if (name !== undefined && value !== undefined) found[name] = value;
-  }
-  return found;
-}
+// FR-022. jsdom applies no stylesheet and resolves no light-dark(), so the colour tokens
+// are read from the stylesheet and split into one palette per scheme by hand.
 
 function rule(selector: RegExp): string {
   const body = selector.exec(css)?.[1];
@@ -24,11 +16,16 @@ function token(scheme: Record<string, string>, name: string): string {
   return value;
 }
 
-const light = tokens(rule(/^:root \{([^}]*)\}/m));
-const dark = {
-  ...light,
-  ...tokens(rule(/prefers-color-scheme: dark\)[^{]*\{\s*:root \{([^}]*)\}/)),
-};
+const root = rule(/^:root \{([^}]*)\}/m);
+const light: Record<string, string> = {};
+const dark: Record<string, string> = {};
+for (const [, name, l, d] of root.matchAll(
+  /(--[\w-]+):\s*light-dark\((#[0-9a-f]{6}),\s*(#[0-9a-f]{6})\)/gi,
+)) {
+  if (name === undefined || l === undefined || d === undefined) continue;
+  light[name] = l;
+  dark[name] = d;
+}
 
 /** WCAG 2.1 relative luminance and contrast ratio. */
 function luminance(hex: string): number {
@@ -55,9 +52,17 @@ describe('colour contrast', () => {
   it.each([
     ['light', light],
     ['dark', dark],
-  ])('keeps button labels and links at 4.5:1 or more in %s mode', (_, scheme) => {
+  ])('keeps button labels, links and muted text at 4.5:1 or more in %s mode', (_, scheme) => {
     const accent = token(scheme, '--accent');
+    const bg = token(scheme, '--bg');
     expect(contrast(token(scheme, '--on-accent'), accent)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(accent, token(scheme, '--bg'))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(accent, bg)).toBeGreaterThanOrEqual(4.5);
+    // Labels, hints, and the inactive icon of the colour scheme toggle (FR-023).
+    expect(contrast(token(scheme, '--muted'), bg)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('gives every colour token a value in both schemes', () => {
+    const declared = [...root.matchAll(/(--[\w-]+):/g)].map(([, name]) => name);
+    expect(Object.keys(light)).toEqual(declared);
   });
 });
