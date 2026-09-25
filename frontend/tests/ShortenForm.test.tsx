@@ -56,9 +56,9 @@ describe('ShortenForm', () => {
 
   it('sends the chosen expiry and reports the created link', async () => {
     const link = {
-      code: 'k9Xz2Q',
-      shortUrl: 'http://localhost:3000/k9Xz2Q',
-      previewUrl: 'http://localhost:3000/p/k9Xz2Q',
+      code: 'k9Xz2QmB7rT',
+      shortUrl: 'http://localhost:3000/k9Xz2QmB7rT',
+      previewUrl: 'http://localhost:3000/p/k9Xz2QmB7rT',
       originalUrl: 'https://example.com/',
       createdAt: '2026-09-24T12:00:00.000Z',
       expiresAt: '2026-09-25T12:00:00.000Z',

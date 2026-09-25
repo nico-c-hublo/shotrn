@@ -23,7 +23,7 @@ describe('POST /api/links', () => {
     const res = await post({ url: LONG_URL }).expect(201);
 
     expect(res.body).toEqual({
-      code: expect.stringMatching(/^[0-9A-Za-z]{6,10}$/),
+      code: expect.stringMatching(/^[0-9A-Za-z]{11}$/),
       shortUrl: `${ctx.env.baseUrl}/${res.body.code}`,
       previewUrl: `${ctx.env.baseUrl}/p/${res.body.code}`,
       originalUrl: LONG_URL,
@@ -90,6 +90,16 @@ describe('POST /api/links', () => {
     const second = await post({ url: LONG_URL }).expect(201);
     expect(second.body.code).not.toBe(first.body.code);
     expect(second.body.originalUrl).toBe(first.body.originalUrl);
+  });
+
+  // FR-007: a code must not be a function of anything an attacker could learn or replay.
+  // Under the former Sqids scheme, an emptied table with the same configuration issued the
+  // same first code every time.
+  it('issues a different code from identical state and configuration', async () => {
+    const first = await post({ url: LONG_URL }).expect(201);
+    await ctx.reset();
+    const second = await post({ url: LONG_URL }).expect(201);
+    expect(second.body.code).not.toBe(first.body.code);
   });
 
   // FR-011, FR-012

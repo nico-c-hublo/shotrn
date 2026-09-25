@@ -48,7 +48,7 @@ describe('GET /api/links/:code (preview)', () => {
   });
 
   it('returns 404 for an unknown code, matching the redirect path', async () => {
-    const res = await request(server()).get('/api/links/zzzzzz').expect(404);
+    const res = await request(server()).get('/api/links/zzzzzzzzzzz').expect(404);
     expect(res.body.error.code).toBe('NOT_FOUND');
     expect(res.headers.location).toBeUndefined();
   });

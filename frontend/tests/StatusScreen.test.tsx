@@ -10,9 +10,9 @@ afterEach(() => {
 });
 
 const link = {
-  code: 'k9Xz2Q',
-  shortUrl: 'http://localhost:3000/k9Xz2Q',
-  previewUrl: 'http://localhost:3000/p/k9Xz2Q',
+  code: 'k9Xz2QmB7rT',
+  shortUrl: 'http://localhost:3000/k9Xz2QmB7rT',
+  previewUrl: 'http://localhost:3000/p/k9Xz2QmB7rT',
   originalUrl: 'https://example.com/gone',
   createdAt: '2026-09-24T12:00:00.000Z',
   expiresAt: '2026-09-24T13:00:00.000Z',
@@ -28,7 +28,7 @@ describe('visiting a short link that cannot be followed', () => {
   it('shows "Link not found" for a code that was never issued', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404, json: async () => ({}) });
 
-    render(<App pathname="/zzzzzz" />);
+    render(<App pathname="/zzzzzzzzzzz" />);
 
     expect(await screen.findByRole('heading', { name: 'Link not found' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Shorten a new link' })).toHaveAttribute('href', '/');
@@ -37,7 +37,7 @@ describe('visiting a short link that cannot be followed', () => {
   it('shows the expired screen for a code whose link has expired', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 410, json: async () => link });
 
-    render(<App pathname="/k9Xz2Q" />);
+    render(<App pathname="/k9Xz2QmB7rT" />);
 
     expect(
       await screen.findByRole('heading', { name: 'This link has expired' }),
@@ -49,7 +49,7 @@ describe('visiting a short link that cannot be followed', () => {
   it('falls back to "Link not found" when the API itself fails', async () => {
     fetchMock.mockRejectedValue(new Error('network down'));
 
-    render(<App pathname="/zzzzzz" />);
+    render(<App pathname="/zzzzzzzzzzz" />);
 
     expect(await screen.findByRole('heading', { name: 'Link not found' })).toBeInTheDocument();
   });
@@ -57,7 +57,7 @@ describe('visiting a short link that cannot be followed', () => {
   it('shows the destination on the preview route for an expired link', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 410, json: async () => link });
 
-    render(<App pathname="/p/k9Xz2Q" />);
+    render(<App pathname="/p/k9Xz2QmB7rT" />);
 
     await waitFor(() => expect(screen.getByText('https://example.com/gone')).toBeInTheDocument());
     expect(screen.queryByRole('link', { name: 'Continue to this site' })).not.toBeInTheDocument();

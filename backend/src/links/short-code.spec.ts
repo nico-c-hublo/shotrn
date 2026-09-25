@@ -1,59 +1,48 @@
-import { CODE_CHARS } from '../config/env';
-import { createShortCodec, MAX_CODE_LENGTH, MIN_CODE_LENGTH } from './short-code';
-
-// Derived from CODE_CHARS so it cannot drift out of sync with the validator. A hand-typed
-// literal silently did: it was 61 characters, and the fallback hid the mistake.
-const ALPHABET = [...CODE_CHARS].reverse().join('');
-const codec = createShortCodec(ALPHABET);
+import { CODE_CHARS, CODE_LENGTH, generateCode, isWellFormedCode } from './short-code';
 
 describe('short code', () => {
-  it('produces codes of the required shape (FR-006)', () => {
-    const pattern = new RegExp(`^[0-9A-Za-z]{${MIN_CODE_LENGTH},${MAX_CODE_LENGTH}}$`);
-    for (let id = 1; id <= 1000; id++) expect(codec.encode(id)).toMatch(pattern);
-    for (const id of [1_000_000, 50_000_000, 999_999_999]) {
-      expect(codec.encode(id)).toMatch(pattern);
+  it('generates codes of the required shape (FR-006)', () => {
+    for (let i = 0; i < 1000; i++) expect(generateCode()).toMatch(/^[0-9A-Za-z]{11}$/);
+  });
+
+  // FR-007: each position is an independent draw over the whole alphabet. A stub source
+  // makes this deterministic: stepping it through 0..61 must yield every character in
+  // every position, so no position is fixed or restricted.
+  it('can produce every character at every position', () => {
+    for (let offset = 0; offset < CODE_CHARS.length; offset++) {
+      let calls = 0;
+      const code = generateCode((max) => {
+        expect(max).toBe(CODE_CHARS.length);
+        return (offset + calls++) % max;
+      });
+      expect(calls).toBe(CODE_LENGTH);
+      for (let position = 0; position < CODE_LENGTH; position++) {
+        expect(code[position]).toBe(CODE_CHARS[(offset + position) % CODE_CHARS.length]);
+      }
     }
   });
 
-  it('round-trips every id it encodes', () => {
-    for (let id = 1; id <= 2000; id++) expect(codec.decode(codec.encode(id))).toBe(id);
+  // Not a statistical test, only a tripwire: a broken source (constant, or reseeded per
+  // call) repeats immediately, while 10,000 real draws collide with probability ~1e-12.
+  it('does not repeat itself across draws', () => {
+    const codes = new Set(Array.from({ length: 10_000 }, () => generateCode()));
+    expect(codes.size).toBe(10_000);
   });
 
-  // FR-007: knowing one code must not reveal the next by simple increment.
-  it('does not produce sequential-looking codes for adjacent ids', () => {
-    let differsOnlyInLastChar = 0;
-    for (let id = 1; id <= 1000; id++) {
-      const a = codec.encode(id);
-      const b = codec.encode(id + 1);
-      if (a.length === b.length && a.slice(0, -1) === b.slice(0, -1)) differsOnlyInLastChar++;
-    }
-    expect(differsOnlyInLastChar).toBe(0);
+  it.each(['', 'short', 'k9Xz2QmB7r', 'k9Xz2QmB7rTx', 'k9Xz2QmB7r!', 'k9Xz2QmB7r-', 'k9Xz2QmB7ré'])(
+    'rejects %p as malformed',
+    (code) => {
+      expect(isWellFormedCode(code)).toBe(false);
+    },
+  );
+
+  it('accepts a code it could have issued', () => {
+    expect(isWellFormedCode('k9Xz2QmB7rT')).toBe(true);
   });
 
-  it('rejects codes it did not issue', () => {
-    expect(codec.decode('!!!!!!')).toBeNull();
-    expect(codec.decode('short')).toBeNull();
-    expect(codec.decode('waaaaaaaaaaytoolong')).toBeNull();
-    expect(codec.decode('')).toBeNull();
-  });
-
-  it('rejects a non-canonical encoding of a real id', () => {
-    const real = codec.encode(42);
-    // Same characters, different order: decodes to something, but is not the canonical form.
-    const scrambled = real.slice(1) + real[0];
-    if (scrambled !== real) expect(codec.decode(scrambled)).not.toBe(42);
-  });
-
-  it('is case-sensitive', () => {
-    const code = codec.encode(12345);
-    const flipped = [...code]
-      .map((c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()))
-      .join('');
-    if (flipped !== code) expect(codec.decode(flipped)).not.toBe(12345);
-  });
-
-  it('refuses to encode ids outside the safe range', () => {
-    expect(() => codec.encode(0)).toThrow(RangeError);
-    expect(() => codec.encode(Number.MAX_SAFE_INTEGER + 2)).toThrow(RangeError);
+  // `/:code` is a catch-all, so a code equal to a reserved first segment would be
+  // unreachable. Fixed-length codes rule that out, provided no segment is that long.
+  it.each(['api', 'p', 'assets'])('can never collide with the reserved segment /%s', (segment) => {
+    expect(segment).not.toHaveLength(CODE_LENGTH);
   });
 });

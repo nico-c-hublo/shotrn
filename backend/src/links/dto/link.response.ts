@@ -18,14 +18,13 @@ export function linkStatus(expiresAt: Date | null, now: Date = new Date()): Link
 
 export function toLinkResponse(
   row: LinkRow,
-  code: string,
   baseUrl: string,
   now: Date = new Date(),
 ): LinkResponse {
   return {
-    code,
-    shortUrl: `${baseUrl}/${code}`,
-    previewUrl: `${baseUrl}/p/${code}`,
+    code: row.code,
+    shortUrl: `${baseUrl}/${row.code}`,
+    previewUrl: `${baseUrl}/p/${row.code}`,
     originalUrl: row.originalUrl,
     createdAt: row.createdAt.toISOString(),
     expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null,

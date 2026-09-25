@@ -10,7 +10,7 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:3000', changeOrigin: false },
       // Single-segment alphanumeric paths of 6-10 chars are short codes, not SPA routes.
-      '^/[0-9A-Za-z]{6,10}$': { target: 'http://localhost:3000', changeOrigin: false },
+      '^/[0-9A-Za-z]{11}$': { target: 'http://localhost:3000', changeOrigin: false },
     },
   },
   build: { outDir: 'dist' },

@@ -7,15 +7,11 @@ export interface Env {
   readonly baseUrl: string;
   readonly baseHostname: string;
   readonly port: number;
-  readonly sqidsAlphabet: string;
   readonly rateLimitCreatePerHour: number;
   readonly rateLimitRedirectPerMinute: number;
 }
 
 export const ENV = Symbol('ENV');
-
-/** The 62 characters a short code may contain (FR-006). */
-export const CODE_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 export class EnvValidationError extends Error {
   constructor(problems: string[]) {
@@ -50,29 +46,11 @@ function requirePositiveInt(
   return parsed;
 }
 
-function validateAlphabet(alphabet: string, problems: string[]): void {
-  if (alphabet === '') return; // already reported as missing
-  if (alphabet.length !== CODE_CHARS.length) {
-    problems.push(`SQIDS_ALPHABET must be exactly ${CODE_CHARS.length} characters`);
-    return;
-  }
-  if (new Set(alphabet).size !== alphabet.length) {
-    problems.push('SQIDS_ALPHABET must not contain duplicate characters');
-    return;
-  }
-  const allowed = new Set(CODE_CHARS);
-  if ([...alphabet].some((c) => !allowed.has(c))) {
-    problems.push('SQIDS_ALPHABET must be a permutation of [0-9A-Za-z]');
-  }
-}
-
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const problems: string[] = [];
 
   const databaseUrl = requireString(source, 'DATABASE_URL', problems);
   const baseUrl = requireString(source, 'BASE_URL', problems);
-  const sqidsAlphabet = requireString(source, 'SQIDS_ALPHABET', problems);
-  validateAlphabet(sqidsAlphabet, problems);
 
   let baseHostname = '';
   if (baseUrl !== '') {
@@ -104,7 +82,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     baseUrl: baseUrl.replace(/\/+$/, ''),
     baseHostname,
     port,
-    sqidsAlphabet,
     rateLimitCreatePerHour,
     rateLimitRedirectPerMinute,
   };

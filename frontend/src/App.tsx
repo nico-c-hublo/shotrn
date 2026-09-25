@@ -13,10 +13,10 @@ export type Route =
   { kind: 'home' } | { kind: 'preview'; code: string } | { kind: 'status'; code: string };
 
 export function parseRoute(pathname: string): Route {
-  const preview = /^\/p\/([0-9A-Za-z]{6,10})\/?$/.exec(pathname);
+  const preview = /^\/p\/([0-9A-Za-z]{11})\/?$/.exec(pathname);
   if (preview) return { kind: 'preview', code: preview[1] };
 
-  const code = /^\/([0-9A-Za-z]{6,10})\/?$/.exec(pathname);
+  const code = /^\/([0-9A-Za-z]{11})\/?$/.exec(pathname);
   // Reached only when the server served the shell with 404/410; an active link redirects
   // before the SPA ever loads.
   if (code) return { kind: 'status', code: code[1] };

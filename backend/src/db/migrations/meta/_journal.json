@@ -3,6 +3,7 @@
   "dialect": "postgresql",
   "entries": [
     { "idx": 0, "version": "7", "when": 1758499200000, "tag": "0000_init", "breakpoints": true },
-    { "idx": 1, "version": "7", "when": 1758499260000, "tag": "0001_app_role_grants", "breakpoints": true }
+    { "idx": 1, "version": "7", "when": 1758499260000, "tag": "0001_app_role_grants", "breakpoints": true },
+    { "idx": 2, "version": "7", "when": 1758758400000, "tag": "0002_random_codes", "breakpoints": true }
   ]
 }
