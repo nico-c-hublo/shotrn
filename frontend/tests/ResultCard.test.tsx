@@ -46,6 +46,27 @@ describe('ResultCard', () => {
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
   });
 
+  // "Copied!" on a link that was never copied would send the visitor off with the
+  // previous link still on their clipboard.
+  it('offers to copy again once the next link arrives', async () => {
+    const user = userEvent.setup();
+    const next = {
+      ...permanent,
+      code: 'Zq8w3E1rT5y7U',
+      shortUrl: 'http://localhost:3000/Zq8w3E1rT5y7U',
+    };
+    const { rerender } = render(<ResultCard link={permanent} />);
+
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+
+    rerender(<ResultCard link={next} />);
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(await navigator.clipboard.readText()).toBe(next.shortUrl);
+  });
+
   it('says so when a link never expires', () => {
     render(<ResultCard link={permanent} />);
     expect(screen.getByText('This link never expires.')).toBeInTheDocument();

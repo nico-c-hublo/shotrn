@@ -144,7 +144,7 @@ from the plan's structure.
 | FR-007 | `src/links/short-code.spec.ts` + `test/contract/create-link.e2e-spec.ts` | codes come from `crypto.randomInt`, not from any counter; no configuration value reproduces them |
 | FR-008 | `test/contract/redirect.e2e-spec.ts` | Location equals original incl. query and fragment; IDN and percent-encoded paths round-trip |
 | FR-009 | same | unknown code → 404, no Location; malformed code → 404 without a query |
-| FR-010 | `frontend/tests/ResultCard.test.tsx` | shows full short URL; copy button writes to clipboard; each new result is scrolled into view (without animation when reduced motion is asked for) and focuses the copy button |
+| FR-010 | `frontend/tests/ResultCard.test.tsx` | shows full short URL; copy button writes to clipboard and says "Copied!" only for the link it copied; each new result is scrolled into view (without animation when reduced motion is asked for) and focuses the copy button |
 | FR-011 | `test/contract/create-link.e2e-spec.ts` + `src/links/expiry.spec.ts` | each option maps to correct offset; absent ⇒ null; unknown ⇒ 400 |
 | FR-012 | `frontend/tests/ResultCard.test.tsx` | renders absolute expiry date/time for temporary link |
 | FR-013 | `test/contract/redirect.e2e-spec.ts` + `test/contract/preview.e2e-spec.ts` + `frontend/tests/PreviewCard.test.tsx` | expired link → 410, no Location; 1 s before expiry → 302; expired preview body and page never contain the original URL |

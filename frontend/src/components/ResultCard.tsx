@@ -8,7 +8,10 @@ interface Props {
 }
 
 export function ResultCard({ link }: Props) {
-  const [copied, setCopied] = useState(false);
+  // Remembers which link was copied, not just that one was, so a new link reads "Copy"
+  // again without an effect to reset it.
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const copied = copiedUrl === link.shortUrl;
   const card = useRef<HTMLElement>(null);
   const copyButton = useRef<HTMLButtonElement>(null);
 
@@ -24,9 +27,9 @@ export function ResultCard({ link }: Props) {
   async function copy(): Promise<void> {
     try {
       await navigator.clipboard.writeText(link.shortUrl);
-      setCopied(true);
+      setCopiedUrl(link.shortUrl);
     } catch {
-      setCopied(false);
+      setCopiedUrl(null);
     }
   }
 

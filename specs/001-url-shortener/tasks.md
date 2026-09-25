@@ -350,6 +350,7 @@ the button labels measure at least 4.5:1.
 - [X] T127 Add an `--on-accent` token in `frontend/src/styles.css`, white in light mode and `--bg` in dark mode, and use it for button text (FR-022)
 - [X] T128 [P] Component tests in `frontend/tests/ResultCard.test.tsx`: a new link scrolls its card into view, smoothly unless reduced motion is asked for, and focuses the copy button; a second link scrolls again (FR-010)
 - [X] T129 On each new link, scroll the result card into view and move focus to the copy button in `frontend/src/components/ResultCard.tsx` (FR-010)
+- [X] T130 Show "Copied!" only for the link that was copied: after copying one link and shortening another, the button kept saying "Copied!" in `frontend/src/components/ResultCard.tsx`; tested in `frontend/tests/ResultCard.test.tsx` (FR-010)
 
 ---
 
