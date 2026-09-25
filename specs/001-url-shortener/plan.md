@@ -28,7 +28,7 @@ served by the same service in production.
 **Primary Dependencies**:
 - Backend: NestJS 11 (Express adapter), Drizzle ORM + `drizzle-kit` (schema +
   migrations), `pg`, `@nestjs/throttler`, `helmet`, `class-validator`/`class-transformer`
-- Frontend: React 19, Vite 8, React Testing Library
+- Frontend: React 19, Vite 8, `qrcode.react`, React Testing Library
 - Dev/test: Vitest 5 + Supertest (backend), Vitest 5 (frontend), `@testcontainers/postgresql`
 
 **Storage**: PostgreSQL 16 — one table (`links`), keyed by the random short code
@@ -162,7 +162,7 @@ frontend/
 │   │   └── links.ts         # typed fetch wrappers matching contracts/openapi.yaml
 │   ├── components/
 │   │   ├── ShortenForm.tsx  # url input + expiry select + client-side validation
-│   │   ├── ResultCard.tsx   # short link, copy button, expiry display
+│   │   ├── ResultCard.tsx   # short link, QR code, copy button, expiry display
 │   │   └── PreviewCard.tsx  # original URL, created/expires, "go" link
 │   └── styles.css
 ├── tests/
@@ -206,5 +206,6 @@ Re-evaluated after Phase 1 (data-model, contracts, quickstart):
 - Every FR maps to at least one named test in quickstart.md's matrix, including
   negative cases for FR-002/003/004/013/015. PASS.
 - No new dependency introduced during design. PASS.
+- FR-021 later added `qrcode.react`, justified in research.md §12 and §Dependencies. PASS.
 
 **Gate result (post-design)**: PASS.

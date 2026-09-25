@@ -71,6 +71,11 @@ curl -s -X POST $B/api/links -H 'content-type: application/json' -d "{\"url\":\"
 # Same URL twice → two different codes (FR-018)
 ```
 
+In the browser, shorten a link with the viewport at 320, 390, 768, and 1440 pixels wide
+and in a phone's landscape orientation, in both light and dark mode. At each size the
+page must not scroll horizontally, and a phone camera pointed at the QR code must offer
+to open exactly the short link (FR-021).
+
 ### US2 — Follow a link
 
 ```bash
@@ -150,6 +155,7 @@ from the plan's structure.
 | FR-018 | `test/contract/create-link.e2e-spec.ts` | posting the same URL twice yields two different codes |
 | FR-019 | `contracts/openapi.yaml` | contract tests assert response shapes against the schema |
 | FR-020, SC-009 | `test/contract/rate-limit.e2e-spec.ts` | lookups beyond the limit are refused with 429 for known and unknown codes alike; IPv6 addresses in one /64 share a limit; SC-009 follows from code length (research §2) |
+| FR-021 | `frontend/tests/ResultCard.test.tsx` | QR code is labelled with the short URL, keeps a four-module quiet zone, and is black on white whatever the colour scheme. Decoding it back to the short URL at 320–1440px viewports is a manual check (see US1) |
 | Security headers | `test/contract/redirect.e2e-spec.ts` | `X-Content-Type-Options`, `X-Frame-Options`/CSP, `Referrer-Policy` present on every response |
 | Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL; log output never contains its value |
 
