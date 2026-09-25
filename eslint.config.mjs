@@ -62,7 +62,7 @@ export default defineConfig(
   },
   {
     // Tool config files run in Node with CommonJS globals.
-    files: ['**/jest.config.js', '**/*.cjs'],
+    files: ['**/*.cjs'],
     languageOptions: {
       globals: { module: 'writable', require: 'readonly', __dirname: 'readonly' },
     },

@@ -75,7 +75,7 @@ describe('LinksRepository', () => {
 
   // Defence in depth: the database refuses a code the application could never issue.
   it.each(['short', 'abcdefghijklmn', 'abcdefghijkl-'])(
-    'rejects the malformed code %p',
+    'rejects the malformed code %j',
     async (code) => {
       await expect(
         repository.insert({ code, originalUrl: 'https://example.com/', expiresAt: null }),

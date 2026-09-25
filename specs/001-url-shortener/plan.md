@@ -28,13 +28,13 @@ served by the same service in production.
 **Primary Dependencies**:
 - Backend: NestJS 11 (Express adapter), Drizzle ORM + `drizzle-kit` (schema +
   migrations), `pg`, `@nestjs/throttler`, `helmet`, `class-validator`/`class-transformer`
-- Frontend: React 19, Vite 6, React Testing Library
-- Dev/test: Jest + Supertest (backend), Vitest (frontend), `@testcontainers/postgresql`
+- Frontend: React 19, Vite 8, React Testing Library
+- Dev/test: Vitest 4 + Supertest (backend), Vitest 4 (frontend), `@testcontainers/postgresql`
 
 **Storage**: PostgreSQL 16 — one table (`links`), keyed by the random short code
 
-**Testing**: Backend: Jest unit (`src/**/*.spec.ts`) + contract/integration
-(`test/**/*.e2e-spec.ts`) against a Testcontainers Postgres. Frontend: Vitest + Testing
+**Testing**: Backend: Vitest `unit` project (`src/**/*.spec.ts`) + `e2e` project for
+contract/integration (`test/**/*.e2e-spec.ts`) against a Testcontainers Postgres. Frontend: Vitest + Testing
 Library. Single root command `npm test` runs everything.
 
 **Target Platform**: Linux container (Node 22), behind an HTTPS-terminating proxy

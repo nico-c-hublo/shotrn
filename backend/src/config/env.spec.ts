@@ -53,7 +53,7 @@ describe('loadEnv', () => {
     const source = { ...base, PUBLIC_BASE_URL: 'not-a-url-but-secret' };
     try {
       loadEnv(source);
-      fail('expected loadEnv to throw');
+      expect.unreachable('expected loadEnv to throw');
     } catch (error) {
       const message = (error as Error).message;
       expect(message).not.toContain('not-a-url-but-secret');

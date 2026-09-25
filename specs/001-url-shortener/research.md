@@ -246,7 +246,7 @@ sits next to internal services.
 | `helmet` | Constitution: baseline security headers | Setting 5 headers by hand is fine too; helmet is the audited default |
 | *(none for static files)* | Express's built-in `useStaticAssets` serves the hashed bundles; `@nestjs/serve-static` was dropped as an unused dependency | A separate static host would complicate same-origin `/:code` routing, but the Nest wrapper adds nothing over the adapter method already available |
 | React 19 + Vite 6 | User-mandated frontend | — |
-| Jest + Supertest | Nest default test stack; contract tests over HTTP | Vitest on backend requires SWC decorator config — not worth two configs |
+| Vitest + Supertest (backend) | One test runner for both workspaces, and the one Vite+ runs; contract tests over HTTP | Jest was the original choice (the Nest default) because Vitest on Vite 6 needed SWC to emit decorator metadata. Vite 8 transforms with Oxc, which emits it, so that cost is gone (Phase 10) |
 | Vitest + Testing Library | Vite-native frontend tests | — |
 | `@testcontainers/postgresql` | Constitution IV: one command, no manually provisioned state | `pg-mem` is not Postgres-faithful (identity, TIMESTAMPTZ); docker-compose-managed test DB is "manually provisioned state" |
 | ESLint (typescript-eslint) + Prettier | Constitution II: tooling-enforced quality. Type-aware since Phase 9, so unawaited promises (including supertest thenables) fail the gate | — |

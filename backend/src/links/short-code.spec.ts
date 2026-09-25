@@ -37,7 +37,7 @@ describe('short code', () => {
     'k9Xz2QmB7rTq!',
     'k9Xz2QmB7rTq-',
     'k9Xz2QmB7rTqé',
-  ])('rejects %p as malformed', (code) => {
+  ])('rejects %j as malformed', (code) => {
     expect(isWellFormedCode(code)).toBe(false);
   });
 

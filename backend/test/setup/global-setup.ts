@@ -1,17 +1,13 @@
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
 import { runMigrations } from '../../src/db/migrate';
 import { join } from 'node:path';
 
-declare global {
-  var __PG_CONTAINER__: StartedPostgreSqlContainer | undefined;
-}
-
 /**
  * Constitution IV: the suite runs with one command and no manually provisioned state.
- * Docker is the only prerequisite.
+ * Docker is the only prerequisite. Vitest runs the returned function as the teardown.
  */
-export default async function globalSetup(): Promise<void> {
+export default async function globalSetup(): Promise<() => Promise<void>> {
   const container = await new PostgreSqlContainer('postgres:16-alpine')
     .withDatabase('shotrn_test')
     .withUsername('test')
@@ -29,5 +25,7 @@ export default async function globalSetup(): Promise<void> {
     await pool.end();
   }
 
-  globalThis.__PG_CONTAINER__ = container;
+  return async () => {
+    await container.stop();
+  };
 }

@@ -67,9 +67,9 @@ describe('GET /:code', () => {
   });
 
   it.each(['zzzzzz', 'zzzzzzzzzzzzzz', 'zzzzzzzzzzzz-'])(
-    'answers the malformed code %p with 404 without querying',
+    'answers the malformed code %j with 404 without querying',
     async (code) => {
-      const lookup = jest.spyOn(ctx.app.get(LinksRepository), 'findByCode');
+      const lookup = vi.spyOn(ctx.app.get(LinksRepository), 'findByCode');
       try {
         const res = await request(server()).get(`/${code}`).expect(404);
         expect(res.headers.location).toBeUndefined();

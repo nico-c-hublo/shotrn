@@ -24,7 +24,7 @@ class FakeRepository {
 function serviceWith(codes: string[]) {
   const repository = new FakeRepository();
   const queue = [...codes];
-  const generate = jest.fn(() => {
+  const generate = vi.fn(() => {
     const code = queue.shift();
     if (code === undefined) throw new Error('test drew more codes than it supplied');
     return code;
@@ -61,7 +61,7 @@ describe('LinksService', () => {
 
   describe('resolve', () => {
     it.each(['', 'short', 'freshFRESH234x', 'fresh-FRESH23'])(
-      'answers %p as not found without a lookup',
+      'answers %j as not found without a lookup',
       async (code) => {
         const { service, repository } = serviceWith([]);
         expect(await service.resolve(code)).toEqual({ outcome: 'not-found' });
