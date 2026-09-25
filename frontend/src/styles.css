@@ -3,6 +3,9 @@
   --fg: #16161a;
   --muted: #5c5c66;
   --accent: #2f5bea;
+  /* Text drawn on the accent. Dark mode lightens the accent for links, which leaves
+     white labels at 2.28:1, so labels there switch to the dark background (7.92:1). */
+  --on-accent: #ffffff;
   --border: #dcdce4;
   --error: #b4232b;
   color-scheme: light dark;
@@ -14,6 +17,7 @@
     --fg: #f2f2f5;
     --muted: #a0a0ad;
     --accent: #8fa8ff;
+    --on-accent: #16161a;
     --border: #32323c;
     --error: #ff8f92;
   }
@@ -71,7 +75,7 @@ button {
   cursor: pointer;
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   justify-self: start;
   margin-top: 0.5rem;
 }

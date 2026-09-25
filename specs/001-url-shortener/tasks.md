@@ -346,8 +346,8 @@ new result appeared below the fold, and white button text in dark mode measured 
 field: the result card scrolls into view and the copy button has focus. In dark mode
 the button labels measure at least 4.5:1.
 
-- [ ] T126 [P] Contrast test in `frontend/tests/contrast.test.ts`: reads the colour tokens from `frontend/src/styles.css` for each scheme and asserts button labels (`--on-accent` on `--accent`) and links (`--accent` on `--bg`) reach 4.5:1; widen the Vitest `include` glob to `*.test.{ts,tsx}` and confirm the collected count grows by exactly the new tests (FR-022)
-- [ ] T127 Add an `--on-accent` token in `frontend/src/styles.css`, white in light mode and `--bg` in dark mode, and use it for button text (FR-022)
+- [X] T126 [P] Contrast test in `frontend/tests/contrast.test.ts`: reads the colour tokens from `frontend/src/styles.css` for each scheme and asserts button labels (`--on-accent` on `--accent`) and links (`--accent` on `--bg`) reach 4.5:1; widen the Vitest `include` glob to `*.test.{ts,tsx}` and confirm the collected count grows by exactly the new tests (FR-022)
+- [X] T127 Add an `--on-accent` token in `frontend/src/styles.css`, white in light mode and `--bg` in dark mode, and use it for button text (FR-022)
 - [ ] T128 [P] Component tests in `frontend/tests/ResultCard.test.tsx`: a new link scrolls its card into view, smoothly unless reduced motion is asked for, and focuses the copy button; a second link scrolls again (FR-010)
 - [ ] T129 On each new link, scroll the result card into view and move focus to the copy button in `frontend/src/components/ResultCard.tsx` (FR-010)
 
