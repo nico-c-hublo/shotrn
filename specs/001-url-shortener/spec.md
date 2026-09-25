@@ -234,6 +234,13 @@ link and verifying the full original URL is displayed without any redirect.
 - **FR-022**: Text and the labels of controls MUST have a contrast ratio of at least
   4.5:1 against their background (WCAG 2.1 AA) in both the light and the dark colour
   scheme.
+- **FR-023**: Every page MUST offer a light/dark colour scheme toggle in its top right
+  corner, drawn as a sun and a moon with the active scheme in the accent colour. Until
+  the visitor picks one, the page follows the device's colour scheme. A pick MUST apply
+  at once with a short cross-fade (none when the visitor asks for reduced motion),
+  survive a reload, and fall back silently to the device's scheme when the
+  browser cannot store it. Each icon MUST have an accessible name and expose whether
+  it is the active scheme.
 
 ### Key Entities
 
@@ -312,3 +319,7 @@ link and verifying the full original URL is displayed without any redirect.
 - **Mobile audit follow-ups** (FR-010's scroll and focus, FR-022) came from checking the
   interface at 320–1440px: on a 320×568 phone or a landscape phone the result appeared
   below the fold, and white button text in dark mode measured 2.28:1.
+- **Colour scheme toggle** (FR-023) was added from the follow-up input "add a small
+  light/dark mode toggle on the top right of the page … simple sun/moon icons with
+  accent color on the active mode". The choice is stored in the browser only; there
+  are no accounts to attach it to.
