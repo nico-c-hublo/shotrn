@@ -53,16 +53,21 @@ describe('GET /api/links/:code (preview)', () => {
     expect(res.headers.location).toBeUndefined();
   });
 
-  // An expired link still returns its body so the preview page can explain what happened.
-  it('returns 410 with the body still present for an expired code', async () => {
-    const created = await create('https://example.com/expired', '1h');
-    await ctx.pool.query(
-      "UPDATE links SET created_at = now() - interval '2 hours', expires_at = now() - interval '1 second'",
+  // FR-013: the preview page can say when the link expired, but never where it pointed.
+  // A guess that lands on an expired code must learn nothing more than that it existed.
+  it('returns 410 with only the code, status and expiry for an expired code', async () => {
+    const created = await create('https://example.com/expired-secret', '1h');
+    const { rows } = await ctx.pool.query<{ expires_at: Date }>(
+      "UPDATE links SET created_at = now() - interval '2 hours', expires_at = now() - interval '1 second' RETURNING expires_at",
     );
 
     const res = await request(server()).get(`/api/links/${created.code}`).expect(410);
     expect(res.headers.location).toBeUndefined();
-    expect(res.body.originalUrl).toBe('https://example.com/expired');
-    expect(res.body.status).toBe('expired');
+    expect(res.body).toEqual({
+      code: created.code,
+      status: 'expired',
+      expiresAt: rows[0].expires_at.toISOString(),
+    });
+    expect(res.text).not.toContain('expired-secret');
   });
 });

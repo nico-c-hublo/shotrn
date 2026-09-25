@@ -106,13 +106,15 @@ describe('GET /:code', () => {
   });
 
   it('returns 410 with no Location one second after expiry', async () => {
-    const code = await create('https://example.com/gone', '1h');
+    const code = await create('https://example.com/gone-secret', '1h');
     await ctx.pool.query(
       "UPDATE links SET created_at = now() - interval '2 hours', expires_at = now() - interval '1 second'",
     );
 
     const res = await request(server()).get(`/${code}`).expect(410);
     expect(res.headers.location).toBeUndefined();
+    // FR-013: the expired page must not carry the destination either.
+    expect(res.text).not.toContain('gone-secret');
   });
 
   // Constitution III: baseline security headers on every response.

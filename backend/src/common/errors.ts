@@ -3,7 +3,7 @@
  * specs/001-url-shortener/contracts/openapi.yaml.
  *
  * There is deliberately no GONE code: an expired link is a resource state, not an error.
- * 410 responses carry a LinkResponse with status 'expired' (JSON) or the expired HTML page.
+ * 410 responses carry an ExpiredLinkResponse (JSON) or the expired HTML page.
  */
 export type ErrorCode =
   'INVALID_URL' | 'VALIDATION_ERROR' | 'NOT_FOUND' | 'RATE_LIMITED' | 'INTERNAL';

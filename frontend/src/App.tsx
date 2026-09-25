@@ -52,12 +52,14 @@ function CodeScreen({ code, preview }: { code: string; preview: boolean }) {
   if (failed) return <StatusScreen kind="not-found" />;
   if (result === null) return <p aria-live="polite">Loading…</p>;
   if (result.state === 'not-found') return <StatusScreen kind="not-found" />;
-
-  if (!preview) {
-    return <StatusScreen kind={result.state === 'expired' ? 'expired' : 'not-found'} />;
+  if (result.state === 'expired') {
+    return <StatusScreen kind="expired" expiresAt={result.link.expiresAt} />;
   }
 
-  return <PreviewCard link={result.link} expired={result.state === 'expired'} />;
+  // A direct visit to an active link redirects before the SPA loads, so only the preview
+  // route has one to show.
+  if (!preview) return <StatusScreen kind="not-found" />;
+  return <PreviewCard link={result.link} />;
 }
 
 export function App({ pathname = window.location.pathname }: { pathname?: string }) {

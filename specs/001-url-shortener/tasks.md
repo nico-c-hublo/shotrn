@@ -237,8 +237,8 @@ from one client exhaust its budget and the 21st lookup, even of a real code, ret
 
 ### Expired links withhold their destination (FR-013)
 
-- [ ] T088 Contract tests in `backend/test/contract/preview.e2e-spec.ts` and `redirect.e2e-spec.ts`: the 410 JSON body is exactly `{ code, status: 'expired', expiresAt }`; neither 410 response contains the original URL
-- [ ] T089 Add `ExpiredLinkResponse` in `backend/src/links/dto/link.response.ts` and return it from the resolve path; mirror the type in `frontend/src/api/links.ts` and render the expired preview without a destination in `frontend/src/components/PreviewCard.tsx`, with tests in `frontend/tests/PreviewCard.test.tsx` and `StatusScreen.test.tsx`
+- [X] T088 Contract tests in `backend/test/contract/preview.e2e-spec.ts` and `redirect.e2e-spec.ts`: the 410 JSON body is exactly `{ code, status: 'expired', expiresAt }`; neither 410 response contains the original URL
+- [X] T089 Add `ExpiredLinkResponse` in `backend/src/links/dto/link.response.ts` and return it from the resolve path; mirror the type in `frontend/src/api/links.ts` and render the expired preview without a destination in `frontend/src/components/PreviewCard.tsx`, with tests in `frontend/tests/PreviewCard.test.tsx` and `StatusScreen.test.tsx`
 
 ### Unknown-code limit and /64 keying (FR-015, FR-020)
 

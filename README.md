@@ -99,13 +99,13 @@ specs/      Specification, plan, research, data model, contract, tasks
 
 ## Routes
 
-| Route                  | Purpose                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| `POST /api/links`      | Shorten a URL. Never deduplicates: the same URL twice yields two codes                    |
-| `GET /api/links/:code` | Preview metadata. 200 active, 410 expired (body retained), 404 unknown                    |
-| `GET /:code`           | Redirect. 301 permanent (cacheable), 302 temporary (`no-store`), 410 expired, 404 unknown |
-| `GET /` and `/p/:code` | SPA pages                                                                                 |
-| `GET /assets/*`        | Hashed frontend bundles                                                                   |
+| Route                  | Purpose                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------- |
+| `POST /api/links`      | Shorten a URL. Never deduplicates: the same URL twice yields two codes                      |
+| `GET /api/links/:code` | Preview metadata. 200 active, 410 expired (expiry only, never the destination), 404 unknown |
+| `GET /:code`           | Redirect. 301 permanent (cacheable), 302 temporary (`no-store`), 410 expired, 404 unknown   |
+| `GET /` and `/p/:code` | SPA pages                                                                                   |
+| `GET /assets/*`        | Hashed frontend bundles                                                                     |
 
 Full contract: [`contracts/openapi.yaml`](specs/001-url-shortener/contracts/openapi.yaml).
 

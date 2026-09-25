@@ -78,8 +78,9 @@ existed, and the Jest config named setup files that had not landed yet.
 - **Validate against the documented commands, not a hand-rolled script.** Exporting
   variables in a test harness hides whether `npm run db:migrate` and `npm start` actually
   work; that is how `.env` support went missing in the first place.
-- **410 is not an error.** An expired link returns a `LinkResponse` with
-  `status: 'expired'`, not an error envelope. There is deliberately no `GONE` error code.
+- **410 is not an error.** An expired link returns an `ExpiredLinkResponse` (`code`,
+  `status: 'expired'`, `expiresAt`), not an error envelope. There is deliberately no
+  `GONE` error code. Never add the destination back: see the security invariants.
 
 ## Security invariants
 
@@ -94,6 +95,8 @@ weaken one without amending the constitution first.
 - Secrets come from the environment and never reach a log, a response, or the repo.
 - Short codes are 11 characters from a CSPRNG and derived from nothing, so no leaked
   value can compute them.
+- An expired link reveals when it expired, never where it pointed. The expired
+  `Resolution` carries no row, so a controller has nothing to leak.
 - Both public paths are rate limited, on separate throttlers so creation limits cannot
   block redirects.
 

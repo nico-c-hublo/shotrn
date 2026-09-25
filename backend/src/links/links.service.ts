@@ -6,7 +6,13 @@ import { toExpiresAt, type ExpiryOption } from './expiry';
 import { LinksRepository } from './links.repository';
 import { CODE_GENERATOR, type CodeGenerator } from './code-generator.provider';
 import { isWellFormedCode } from './short-code';
-import { linkStatus, toLinkResponse, type LinkResponse } from './dto/link.response';
+import {
+  isExpired,
+  toExpiredLinkResponse,
+  toLinkResponse,
+  type ExpiredLinkResponse,
+  type LinkResponse,
+} from './dto/link.response';
 import { validateUrl } from './url-validation';
 
 /**
@@ -17,8 +23,8 @@ import { validateUrl } from './url-validation';
 export const MAX_CODE_DRAWS = 3;
 
 export type Resolution =
-  | { outcome: 'active'; row: LinkRow; code: string; response: LinkResponse }
-  | { outcome: 'expired'; row: LinkRow; code: string; response: LinkResponse }
+  | { outcome: 'active'; row: LinkRow; response: LinkResponse }
+  | { outcome: 'expired'; response: ExpiredLinkResponse }
   | { outcome: 'not-found' };
 
 @Injectable()
@@ -59,8 +65,11 @@ export class LinksService {
     const row = await this.repository.findByCode(code);
     if (row === null) return { outcome: 'not-found' };
 
-    const response = toLinkResponse(row, this.env.baseUrl, now);
-    const outcome = linkStatus(row.expiresAt, now);
-    return { outcome, row, code, response };
+    // The expired outcome deliberately carries no row: nothing downstream can leak the
+    // destination of a link it was never handed (FR-013).
+    if (isExpired(row.expiresAt, now)) {
+      return { outcome: 'expired', response: toExpiredLinkResponse(code, row.expiresAt) };
+    }
+    return { outcome: 'active', row, response: toLinkResponse(row, this.env.baseUrl) };
   }
 }
