@@ -292,7 +292,7 @@ merged without CI.
 - [X] T111 Enable `noUncheckedIndexedAccess` and `noImplicitOverride` in both workspaces and fix the findings
 - [X] T112 Remove `--passWithNoTests` from both test runners, so a broken test glob fails instead of passing; update the bisect notes in `CLAUDE.md`
 - [X] T113 Add `.github/dependabot.yml` for npm and GitHub Actions, weekly and grouped
-- [ ] T114 Confirm the workflow runs on the pull request for this phase
+- [X] T114 Confirm the workflow runs on the pull request for this phase
 
 ---
 
