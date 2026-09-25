@@ -16,7 +16,7 @@ import {
 import { validateUrl } from './url-validation';
 
 /**
- * A clash has probability N / 62¹¹ per draw (about 2e-13 at 10 million links), so a second
+ * A clash has probability N / 62¹³ per draw (about 5e-17 at 10 million links), so a second
  * attempt is already a curiosity and a third failure means the random source is broken.
  * Failing loudly beats looping on it.
  */

@@ -9,27 +9,27 @@ under the principles in [`.specify/memory/constitution.md`](.specify/memory/cons
 ## How short codes work
 
 A short code is a **secret**: holding it is the only way to learn where the link goes.
-Each code is 11 characters drawn independently from `[0-9A-Za-z]` with
+Each code is 13 characters drawn independently from `[0-9A-Za-z]` with
 `crypto.randomInt`, and it is stored as the table's primary key:
 
 ```
-POST /api/links  →  draw 11 random chars  →  INSERT … ON CONFLICT (code) DO NOTHING  →  "k9Xz2QmB7rT"
-GET  /k9Xz2QmB7rT  →  format check  →  SELECT by primary key  →  301/302
+POST /api/links  →  draw 13 random chars  →  INSERT … ON CONFLICT (code) DO NOTHING  →  "k9Xz2QmB7rTq4"
+GET  /k9Xz2QmB7rTq4  →  format check  →  SELECT by primary key  →  301/302
 ```
 
 Nothing derives a code (no counter, key or alphabet), so no configuration value or leak
 short of the database itself lets anyone compute one. The only attack left is guessing
-among 62¹¹ ≈ 5.2×10¹⁹ codes (~65.5 bits), and each client (IPv4 address or IPv6 /64)
+among 62¹³ ≈ 2.0×10²³ codes (~77.4 bits), and each client (IPv4 address or IPv6 /64)
 may look up only 20 unknown codes per 10 minutes before every lookup it makes is
-refused. With 10 million links, 10,000 coordinated clients would find about 0.002
-links a year. An expired link says when it expired, never where it pointed.
+refused. With 10 million links, 10,000 coordinated clients would find fewer than
+0.0003 links a year. An expired link says when it expired, never where it pointed.
 
 A clash with an existing code is reported by the insert as an empty result, and the
-service draws again. The odds are about 2×10⁻¹³ per draw at 10 million links, so three
+service draws again. The odds are about 5×10⁻¹⁷ per draw at 10 million links, so three
 clashes in a row fail the request: that would mean a broken random source, not bad luck.
 
 Why this replaced Sqids, why a keyed permutation was rejected, and the arithmetic behind
-11 characters are in [`research.md §1–2`](specs/001-url-shortener/research.md).
+13 characters are in [`research.md §1–2`](specs/001-url-shortener/research.md).
 
 ### Scaling
 

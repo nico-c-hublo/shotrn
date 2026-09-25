@@ -5,9 +5,9 @@ import { ResultCard } from '../src/components/ResultCard';
 import type { LinkResponse } from '../src/api/links';
 
 const permanent: LinkResponse = {
-  code: 'k9Xz2QmB7rT',
-  shortUrl: 'http://localhost:3000/k9Xz2QmB7rT',
-  previewUrl: 'http://localhost:3000/p/k9Xz2QmB7rT',
+  code: 'k9Xz2QmB7rTq4',
+  shortUrl: 'http://localhost:3000/k9Xz2QmB7rTq4',
+  previewUrl: 'http://localhost:3000/p/k9Xz2QmB7rTq4',
   originalUrl: 'https://example.com/very/long',
   createdAt: '2026-09-24T12:00:00.000Z',
   expiresAt: null,
@@ -21,11 +21,11 @@ describe('ResultCard', () => {
     const user = userEvent.setup();
 
     render(<ResultCard link={permanent} />);
-    expect(screen.getByText('http://localhost:3000/k9Xz2QmB7rT')).toBeInTheDocument();
+    expect(screen.getByText('http://localhost:3000/k9Xz2QmB7rTq4')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Copy' }));
 
-    expect(await navigator.clipboard.readText()).toBe('http://localhost:3000/k9Xz2QmB7rT');
+    expect(await navigator.clipboard.readText()).toBe('http://localhost:3000/k9Xz2QmB7rTq4');
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
   });
 

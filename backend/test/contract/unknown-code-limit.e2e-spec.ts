@@ -23,11 +23,11 @@ describe('unknown-code limit', () => {
     request(server()).get(path).set('X-Forwarded-For', ip);
 
   it('shares one budget between redirect and preview', async () => {
-    await get('/zzzzzzzzzzz').expect(404);
-    await get('/api/links/zzzzzzzzzzy').expect(404);
-    await get('/zzzzzzzzzzw').expect(404);
+    await get('/zzzzzzzzzzzzz').expect(404);
+    await get('/api/links/zzzzzzzzzzzzy').expect(404);
+    await get('/zzzzzzzzzzzzw').expect(404);
 
-    const refused = await get('/zzzzzzzzzzx').expect(429);
+    const refused = await get('/zzzzzzzzzzzzx').expect(429);
     expect(refused.body).toEqual({
       error: { code: 'RATE_LIMITED', message: 'Too many requests, slow down' },
     });
@@ -47,7 +47,7 @@ describe('unknown-code limit', () => {
 
   // Otherwise a guesser keeps guessing and only the refusals stop.
   it('refuses even a real code once the budget is spent', async () => {
-    for (const code of ['zzzzzzzzzzz', 'zzzzzzzzzzy', 'zzzzzzzzzzx']) {
+    for (const code of ['zzzzzzzzzzzzz', 'zzzzzzzzzzzzy', 'zzzzzzzzzzzzx']) {
       await get(`/${code}`).expect(404);
     }
 
@@ -61,21 +61,21 @@ describe('unknown-code limit', () => {
       await get(`/${realCode}`).expect(301);
       await get(`/api/links/${realCode}`).expect(200);
     }
-    await get('/zzzzzzzzzzz').expect(404);
+    await get('/zzzzzzzzzzzzz').expect(404);
   });
 
   it('leaves other clients unaffected', async () => {
-    for (let i = 0; i < 3; i++) await get('/zzzzzzzzzzz').expect(404);
-    await get('/zzzzzzzzzzz').expect(429);
+    for (let i = 0; i < 3; i++) await get('/zzzzzzzzzzzzz').expect(404);
+    await get('/zzzzzzzzzzzzz').expect(429);
 
     await get(`/${realCode}`, '198.51.100.9').expect(301);
-    await get('/zzzzzzzzzzz', '198.51.100.9').expect(404);
+    await get('/zzzzzzzzzzzzz', '198.51.100.9').expect(404);
   });
 
   it('counts every address in one IPv6 /64 as one client', async () => {
-    await get('/zzzzzzzzzzz', '2001:db8:1:2::1').expect(404);
-    await get('/zzzzzzzzzzz', '2001:db8:1:2::2').expect(404);
-    await get('/zzzzzzzzzzz', '2001:db8:1:2:ffff::3').expect(404);
+    await get('/zzzzzzzzzzzzz', '2001:db8:1:2::1').expect(404);
+    await get('/zzzzzzzzzzzzz', '2001:db8:1:2::2').expect(404);
+    await get('/zzzzzzzzzzzzz', '2001:db8:1:2:ffff::3').expect(404);
 
     await get(`/${realCode}`, '2001:db8:1:2::abcd').expect(429);
     await get(`/${realCode}`, '2001:db8:1:3::1').expect(301);
@@ -87,7 +87,7 @@ describe('unknown-code limit', () => {
     await ctx.app.listen(0);
     const statuses = await Promise.all(
       Array.from({ length: 20 }, (_, i) =>
-        get(`/zzzzzzzzz${String(i).padStart(2, '0')}`).then((res) => res.status),
+        get(`/zzzzzzzzzzz${String(i).padStart(2, '0')}`).then((res) => res.status),
       ),
     );
 

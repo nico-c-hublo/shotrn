@@ -4,10 +4,11 @@ import { randomInt } from 'node:crypto';
 export const CODE_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 /**
- * 62¹¹ ≈ 2^65.5: above the 64-bit floor for bearer secrets (research.md §2). Fixed length
- * also means no code can shadow a reserved first path segment, none of which is this long.
+ * 62¹³ ≈ 2^77.4, above the constitution's 77-bit floor: entropy, not a lockout, is what
+ * defeats guessing (research.md §2). Fixed length also means no code can shadow a reserved
+ * first path segment, none of which is this long.
  */
-export const CODE_LENGTH = 11;
+export const CODE_LENGTH = 13;
 
 const WELL_FORMED = new RegExp(`^[0-9A-Za-z]{${CODE_LENGTH}}$`);
 

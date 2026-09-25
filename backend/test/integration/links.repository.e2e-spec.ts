@@ -59,22 +59,22 @@ describe('LinksRepository', () => {
   // Case-sensitive (FR-006) and byte-order: codes differing only in case are distinct keys.
   it('keeps codes that differ only in case apart', async () => {
     await repository.insert({
-      code: 'abcdefghijk',
+      code: 'abcdefghijklm',
       originalUrl: 'https://a.example/',
       expiresAt: null,
     });
     await repository.insert({
-      code: 'ABCDEFGHIJK',
+      code: 'ABCDEFGHIJKLM',
       originalUrl: 'https://b.example/',
       expiresAt: null,
     });
 
-    expect((await repository.findByCode('abcdefghijk'))?.originalUrl).toBe('https://a.example/');
-    expect((await repository.findByCode('ABCDEFGHIJK'))?.originalUrl).toBe('https://b.example/');
+    expect((await repository.findByCode('abcdefghijklm'))?.originalUrl).toBe('https://a.example/');
+    expect((await repository.findByCode('ABCDEFGHIJKLM'))?.originalUrl).toBe('https://b.example/');
   });
 
   // Defence in depth: the database refuses a code the application could never issue.
-  it.each(['short', 'abcdefghijkl', 'abcdefghij-'])(
+  it.each(['short', 'abcdefghijklmn', 'abcdefghijkl-'])(
     'rejects the malformed code %p',
     async (code) => {
       await expect(

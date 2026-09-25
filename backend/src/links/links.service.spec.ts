@@ -34,8 +34,8 @@ function serviceWith(codes: string[]) {
   return { service, repository, generate };
 }
 
-const TAKEN = 'takenTAKEN1';
-const FRESH = 'freshFRESH2';
+const TAKEN = 'takenTAKEN123';
+const FRESH = 'freshFRESH234';
 
 describe('LinksService', () => {
   describe('create', () => {
@@ -60,7 +60,7 @@ describe('LinksService', () => {
   });
 
   describe('resolve', () => {
-    it.each(['', 'short', 'freshFRESH2x', 'fresh-FRESH'])(
+    it.each(['', 'short', 'freshFRESH234x', 'fresh-FRESH23'])(
       'answers %p as not found without a lookup',
       async (code) => {
         const { service, repository } = serviceWith([]);

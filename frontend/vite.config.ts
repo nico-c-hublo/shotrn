@@ -9,8 +9,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: 'http://localhost:3000', changeOrigin: false },
-      // Single-segment alphanumeric paths of exactly 11 chars are short codes, not SPA routes.
-      '^/[0-9A-Za-z]{11}$': { target: 'http://localhost:3000', changeOrigin: false },
+      // Single-segment alphanumeric paths of exactly 13 chars are short codes, not SPA routes.
+      '^/[0-9A-Za-z]{13}$': { target: 'http://localhost:3000', changeOrigin: false },
     },
   },
   build: { outDir: 'dist' },

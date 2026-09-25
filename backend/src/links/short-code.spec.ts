@@ -2,7 +2,7 @@ import { CODE_CHARS, CODE_LENGTH, generateCode, isWellFormedCode } from './short
 
 describe('short code', () => {
   it('generates codes of the required shape (FR-006)', () => {
-    for (let i = 0; i < 1000; i++) expect(generateCode()).toMatch(/^[0-9A-Za-z]{11}$/);
+    for (let i = 0; i < 1000; i++) expect(generateCode()).toMatch(/^[0-9A-Za-z]{13}$/);
   });
 
   // FR-007: each position is an independent draw over the whole alphabet. A stub source
@@ -29,15 +29,20 @@ describe('short code', () => {
     expect(codes.size).toBe(10_000);
   });
 
-  it.each(['', 'short', 'k9Xz2QmB7r', 'k9Xz2QmB7rTx', 'k9Xz2QmB7r!', 'k9Xz2QmB7r-', 'k9Xz2QmB7ré'])(
-    'rejects %p as malformed',
-    (code) => {
-      expect(isWellFormedCode(code)).toBe(false);
-    },
-  );
+  it.each([
+    '',
+    'short',
+    'k9Xz2QmB7rTq',
+    'k9Xz2QmB7rTq4x',
+    'k9Xz2QmB7rTq!',
+    'k9Xz2QmB7rTq-',
+    'k9Xz2QmB7rTqé',
+  ])('rejects %p as malformed', (code) => {
+    expect(isWellFormedCode(code)).toBe(false);
+  });
 
   it('accepts a code it could have issued', () => {
-    expect(isWellFormedCode('k9Xz2QmB7rT')).toBe(true);
+    expect(isWellFormedCode('k9Xz2QmB7rTq4')).toBe(true);
   });
 
   // `/:code` is a catch-all, so a code equal to a reserved first segment would be

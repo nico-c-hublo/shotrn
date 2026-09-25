@@ -16,7 +16,7 @@ export const links = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }),
   },
   (table) => [
-    check('code_format', sql`${table.code} ~ '^[0-9A-Za-z]{11}$'`),
+    check('code_format', sql`${table.code} ~ '^[0-9A-Za-z]{13}$'`),
     check('original_url_length', sql`char_length(${table.originalUrl}) between 1 and 2048`),
     // Case-insensitive: an uppercase scheme is stored verbatim per FR-008.
     check('original_url_scheme', sql`${table.originalUrl} ~* '^https?://'`),

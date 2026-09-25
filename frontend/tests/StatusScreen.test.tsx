@@ -26,7 +26,7 @@ const EXPIRES_AT = '2026-09-24T13:00:00.000Z';
 // A 410 body carries no destination (FR-013). This one adds `originalUrl` anyway, as a
 // misbehaving server might, to prove the page would still not display it.
 const expired = {
-  code: 'k9Xz2QmB7rT',
+  code: 'k9Xz2QmB7rTq4',
   status: 'expired',
   expiresAt: EXPIRES_AT,
   originalUrl: 'https://example.com/gone',
@@ -40,7 +40,7 @@ describe('the outcome stated by the served page', () => {
   it('shows "Link not found" without looking the code up again', async () => {
     serveOutcome({ 'shotrn-link-status': 'not-found' });
 
-    render(<App pathname="/zzzzzzzzzzz" />);
+    render(<App pathname="/zzzzzzzzzzzzz" />);
 
     expect(await screen.findByRole('heading', { name: 'Link not found' })).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -49,7 +49,7 @@ describe('the outcome stated by the served page', () => {
   it('shows when an expired link expired without looking the code up again', async () => {
     serveOutcome({ 'shotrn-link-status': 'expired', 'shotrn-link-expires-at': EXPIRES_AT });
 
-    render(<App pathname="/k9Xz2QmB7rT" />);
+    render(<App pathname="/k9Xz2QmB7rTq4" />);
 
     expect(
       await screen.findByRole('heading', { name: 'This link has expired' }),
@@ -63,7 +63,7 @@ describe('the outcome stated by the served page', () => {
     serveOutcome({ 'shotrn-link-status': 'not-found' });
     fetchMock.mockResolvedValue({ ok: false, status: 410, json: async () => expired });
 
-    render(<App pathname="/p/k9Xz2QmB7rT" />);
+    render(<App pathname="/p/k9Xz2QmB7rTq4" />);
 
     expect(
       await screen.findByRole('heading', { name: 'This link has expired' }),
@@ -80,13 +80,13 @@ describe('visiting a short link that cannot be followed', () => {
   it('shows "Link not found" for a code that was never issued', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404, json: async () => ({}) });
 
-    render(<App pathname="/zzzzzzzzzzz" />);
+    render(<App pathname="/zzzzzzzzzzzzz" />);
 
     expect(await screen.findByRole('heading', { name: 'Link not found' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Shorten a new link' })).toHaveAttribute('href', '/');
   });
 
-  it.each(['/k9Xz2QmB7rT', '/p/k9Xz2QmB7rT'])(
+  it.each(['/k9Xz2QmB7rTq4', '/p/k9Xz2QmB7rTq4'])(
     'on %s, says when the link expired but never where it pointed',
     async (pathname) => {
       fetchMock.mockResolvedValue({ ok: false, status: 410, json: async () => expired });
@@ -105,7 +105,7 @@ describe('visiting a short link that cannot be followed', () => {
   it('falls back to "Link not found" when the API itself fails', async () => {
     fetchMock.mockRejectedValue(new Error('network down'));
 
-    render(<App pathname="/zzzzzzzzzzz" />);
+    render(<App pathname="/zzzzzzzzzzzzz" />);
 
     expect(await screen.findByRole('heading', { name: 'Link not found' })).toBeInTheDocument();
   });

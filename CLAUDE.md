@@ -93,7 +93,7 @@ weaken one without amending the constitution first.
 - Error responses carry a stable code and a safe message — never a stack trace, SQL, or
   filesystem path.
 - Secrets come from the environment and never reach a log, a response, or the repo.
-- Short codes are 11 characters from a CSPRNG and derived from nothing, so no leaked
+- Short codes are 13 characters from a CSPRNG and derived from nothing, so no leaked
   value can compute them.
 - An expired link reveals when it expired, never where it pointed. The expired
   `Resolution` carries no row, so a controller has nothing to leak.

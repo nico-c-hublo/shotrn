@@ -23,7 +23,7 @@ describe('POST /api/links', () => {
     const res = await post({ url: LONG_URL }).expect(201);
 
     expect(res.body).toEqual({
-      code: expect.stringMatching(/^[0-9A-Za-z]{11}$/),
+      code: expect.stringMatching(/^[0-9A-Za-z]{13}$/),
       shortUrl: `${ctx.env.baseUrl}/${res.body.code}`,
       previewUrl: `${ctx.env.baseUrl}/p/${res.body.code}`,
       originalUrl: LONG_URL,

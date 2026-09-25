@@ -61,7 +61,7 @@ describe('GET /:code', () => {
 
   // FR-009
   it('returns 404 with no Location for a code that was never issued', async () => {
-    const res = await request(server()).get('/zzzzzzzzzzz').expect(404);
+    const res = await request(server()).get('/zzzzzzzzzzzzz').expect(404);
     expect(res.headers.location).toBeUndefined();
     expect(res.text).toContain('<div id="root">');
     // The page states the outcome, so the SPA need not look the code up (and be charged
@@ -69,7 +69,7 @@ describe('GET /:code', () => {
     expect(res.text).toContain('<meta name="shotrn-link-status" content="not-found">');
   });
 
-  it.each(['zzzzzz', 'zzzzzzzzzzzz', 'zzzzzzzzzz-'])(
+  it.each(['zzzzzz', 'zzzzzzzzzzzzzz', 'zzzzzzzzzzzz-'])(
     'answers the malformed code %p with 404 without querying',
     async (code) => {
       const lookup = jest.spyOn(ctx.app.get(LinksRepository), 'findByCode');
@@ -89,7 +89,7 @@ describe('GET /:code', () => {
       .map((c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()))
       .join('');
 
-    // An all-digit code has no case to flip; with 11 random characters that is ~1e-8.
+    // An all-digit code has no case to flip; with 13 random characters that is ~5e-11.
     if (flipped !== code) await request(server()).get(`/${flipped}`).expect(404);
   });
 
@@ -125,7 +125,7 @@ describe('GET /:code', () => {
   });
 
   // Constitution III: baseline security headers on every response.
-  it.each(['/zzzzzzzzzzz', '/', '/api/links/zzzzzzzzzzz'])(
+  it.each(['/zzzzzzzzzzzzz', '/', '/api/links/zzzzzzzzzzzzz'])(
     'sets security headers on %s',
     async (path) => {
       const res = await request(server()).get(path);

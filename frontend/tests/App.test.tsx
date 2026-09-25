@@ -7,11 +7,11 @@ describe('parseRoute', () => {
   });
 
   it('routes /p/:code to the preview', () => {
-    expect(parseRoute('/p/k9Xz2QmB7rT')).toEqual({ kind: 'preview', code: 'k9Xz2QmB7rT' });
+    expect(parseRoute('/p/k9Xz2QmB7rTq4')).toEqual({ kind: 'preview', code: 'k9Xz2QmB7rTq4' });
   });
 
   it('routes a bare code to the status screen', () => {
-    expect(parseRoute('/k9Xz2QmB7rT')).toEqual({ kind: 'status', code: 'k9Xz2QmB7rT' });
+    expect(parseRoute('/k9Xz2QmB7rTq4')).toEqual({ kind: 'status', code: 'k9Xz2QmB7rTq4' });
   });
 
   it('falls back to home for anything that cannot be a code', () => {

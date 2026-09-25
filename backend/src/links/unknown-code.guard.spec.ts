@@ -9,7 +9,7 @@ class FakeResponse extends EventEmitter {
   setHeader(): void {}
 }
 
-function fakeRequest(code = 'abcdefghijk') {
+function fakeRequest(code = 'abcdefghijklm') {
   const res = new FakeResponse();
   const req = { ip: '203.0.113.1', params: { code } };
   // Only the HTTP accessors the guard uses are implemented.

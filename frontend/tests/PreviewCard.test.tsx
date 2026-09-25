@@ -4,9 +4,9 @@ import { PreviewCard } from '../src/components/PreviewCard';
 import type { LinkResponse } from '../src/api/links';
 
 const link: LinkResponse = {
-  code: 'k9Xz2QmB7rT',
-  shortUrl: 'http://localhost:3000/k9Xz2QmB7rT',
-  previewUrl: 'http://localhost:3000/p/k9Xz2QmB7rT',
+  code: 'k9Xz2QmB7rTq4',
+  shortUrl: 'http://localhost:3000/k9Xz2QmB7rTq4',
+  previewUrl: 'http://localhost:3000/p/k9Xz2QmB7rTq4',
   originalUrl: 'https://example.com/destination?x=1',
   createdAt: '2026-09-24T12:00:00.000Z',
   expiresAt: '2026-10-01T12:00:00.000Z',
