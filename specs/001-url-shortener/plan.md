@@ -29,7 +29,7 @@ served by the same service in production.
 - Backend: NestJS 11 (Express adapter), Drizzle ORM + `drizzle-kit` (schema +
   migrations), `pg`, `@nestjs/throttler`, `helmet`, `class-validator`/`class-transformer`
 - Frontend: React 19, Vite 8, React Testing Library
-- Dev/test: Vitest 4 + Supertest (backend), Vitest 4 (frontend), `@testcontainers/postgresql`
+- Dev/test: Vitest 5 + Supertest (backend), Vitest 5 (frontend), `@testcontainers/postgresql`
 
 **Storage**: PostgreSQL 16 — one table (`links`), keyed by the random short code
 
@@ -150,7 +150,7 @@ backend/
 │   │   └── links.repository.e2e-spec.ts
 │   └── setup/               # testcontainer lifecycle, migration runner
 ├── drizzle.config.ts
-├── jest.config.ts
+├── vite.config.mts          # Vitest unit + e2e projects, one Vite for both workspaces
 ├── tsconfig.json            # strict: true
 └── package.json
 

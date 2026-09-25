@@ -312,7 +312,7 @@ when it is adopted (T120).
 - [X] T118 Upgrade Vite 6 → 8 (and `@vitejs/plugin-react` 4 → 6). Vite 6 transforms TypeScript with esbuild, which drops decorator metadata; Vite 8 uses Oxc, which emits it. Without this, NestJS injection breaks under Vitest (a probe fails on Vite 6.4.3 and passes on 8.3.1). One Vite for the whole repository, because the workspaces share one Vitest
 - [X] T119 Move the backend tests from Jest to Vitest (`jest.*` → `vi.*`, global setup and timeouts in config), dropping Jest and ts-jest
 - [X] T120 Adopt Vite+: `vp migrate`, a root `vite.config.ts` carrying the lint rules (the effective ESLint rules, with all 16 React hooks rules through `eslint-plugin-react-hooks` under an alias) and the format settings; scripts and CI on `vp check` and `vp test`; remove ESLint, Prettier and typescript-eslint; justify the dependency and its release-candidate risk in research §8
-- [ ] T121 Verify parity with planted violations (a type error, `any`, an unawaited supertest call, a missing effect dependency) and a green CI run
+- [X] T121 Verify parity with planted violations (a type error, `any`, an unawaited supertest call, a missing effect dependency) and a green CI run
 
 ---
 
