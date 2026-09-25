@@ -43,8 +43,8 @@ type LinkStatus = 'active' | 'expired';
 
 | Value | Derivation |
 |---|---|
-| `shortUrl` | `${BASE_URL}/${code}` |
-| `previewUrl` | `${BASE_URL}/p/${code}` |
+| `shortUrl` | `${PUBLIC_BASE_URL}/${code}` |
+| `previewUrl` | `${PUBLIC_BASE_URL}/p/${code}` |
 | `status` | `expiresAt !== null && expiresAt <= now()` → `'expired'` else `'active'` |
 | `expiresAt` from `ExpiryOption` | `never → null`; else `now() + {1h: 1h, 1d: 24h, 7d: 168h, 30d: 720h}` |
 
@@ -57,7 +57,7 @@ Applied in order; first failure wins and yields `400 INVALID_URL` (or
 2. `url.length ≤ 2048` → else message states the limit (FR-003).
 3. `new URL(url)` parses.
 4. `protocol ∈ {http:, https:}` (FR-002).
-5. `hostname.toLowerCase() !== new URL(BASE_URL).hostname` (FR-004).
+5. `hostname.toLowerCase() !== new URL(PUBLIC_BASE_URL).hostname` (FR-004).
 6. `expiry` absent or `∈ ExpiryOption` (FR-011). Absent ⇒ `'never'`.
 
 ## State transitions

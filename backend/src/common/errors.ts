@@ -6,7 +6,11 @@
  * 410 responses carry an ExpiredLinkResponse (JSON) or the expired HTML page.
  */
 export type ErrorCode =
-  'INVALID_URL' | 'VALIDATION_ERROR' | 'NOT_FOUND' | 'RATE_LIMITED' | 'INTERNAL';
+  | 'INVALID_URL'
+  | 'VALIDATION_ERROR'
+  | 'NOT_FOUND'
+  | 'RATE_LIMITED'
+  | 'INTERNAL';
 
 export interface ErrorEnvelope {
   error: { code: ErrorCode; message: string };

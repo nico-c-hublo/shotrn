@@ -67,9 +67,9 @@ describe('GET /:code', () => {
   });
 
   it.each(['zzzzzz', 'zzzzzzzzzzzzzz', 'zzzzzzzzzzzz-'])(
-    'answers the malformed code %p with 404 without querying',
+    'answers the malformed code %j with 404 without querying',
     async (code) => {
-      const lookup = jest.spyOn(ctx.app.get(LinksRepository), 'findByCode');
+      const lookup = vi.spyOn(ctx.app.get(LinksRepository), 'findByCode');
       try {
         const res = await request(server()).get(`/${code}`).expect(404);
         expect(res.headers.location).toBeUndefined();
@@ -82,9 +82,10 @@ describe('GET /:code', () => {
 
   it('treats codes as case-sensitive', async () => {
     const code = await create('https://example.com/case');
-    const flipped = [...code]
-      .map((c) => (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()))
-      .join('');
+    // Codes are ASCII, so splitting into characters is safe here.
+    const flipped = Array.from(code, (c) =>
+      c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase(),
+    ).join('');
 
     // An all-digit code has no case to flip; with 13 random characters that is ~5e-11.
     if (flipped !== code) await request(server()).get(`/${flipped}`).expect(404);

@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import type { MockInstance } from 'vite-plus/test';
 import request from 'supertest';
 import { LinksRepository } from '../../src/links/links.repository';
 import { createTestApp, type TestApp } from '../setup/app';
@@ -11,7 +12,7 @@ import { createTestApp, type TestApp } from '../setup/app';
 describe('logging a failed request', () => {
   let ctx: TestApp;
   let logged: string;
-  let spy: jest.SpyInstance;
+  let spy: MockInstance;
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -21,7 +22,7 @@ describe('logging a failed request', () => {
   });
   beforeEach(async () => {
     await ctx.reset();
-    spy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    spy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
   });
   afterEach(() => {
     spy.mockRestore();
@@ -58,7 +59,7 @@ describe('logging a failed request', () => {
 
   it('keeps the new code and the destination out of the log of a failed create', async () => {
     const destination = 'https://private.example/unlisted-document';
-    const insert = jest.spyOn(ctx.app.get(LinksRepository), 'insert'); // calls through
+    const insert = vi.spyOn(ctx.app.get(LinksRepository), 'insert'); // calls through
     let drawnCode: string;
     try {
       await withTableHidden(() =>

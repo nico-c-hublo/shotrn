@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 /**
  * Asserted in a child process: `process.loadEnvFile` mutates the real environment, and
- * Jest's sandboxed `process.env` does not reflect that, so an in-process test would
+ * the test runner's worker environment need not reflect that, so an in-process test would
  * silently pass while the behaviour was broken.
  */
 function probe(fileContents: string | null, preset: Record<string, string>): string {

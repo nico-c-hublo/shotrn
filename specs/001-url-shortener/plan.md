@@ -28,13 +28,13 @@ served by the same service in production.
 **Primary Dependencies**:
 - Backend: NestJS 11 (Express adapter), Drizzle ORM + `drizzle-kit` (schema +
   migrations), `pg`, `@nestjs/throttler`, `helmet`, `class-validator`/`class-transformer`
-- Frontend: React 19, Vite 6, React Testing Library
-- Dev/test: Jest + Supertest (backend), Vitest (frontend), `@testcontainers/postgresql`
+- Frontend: React 19, Vite 8, React Testing Library
+- Dev/test: Vitest 5 + Supertest (backend), Vitest 5 (frontend), `@testcontainers/postgresql`
 
 **Storage**: PostgreSQL 16 — one table (`links`), keyed by the random short code
 
-**Testing**: Backend: Jest unit (`src/**/*.spec.ts`) + contract/integration
-(`test/**/*.e2e-spec.ts`) against a Testcontainers Postgres. Frontend: Vitest + Testing
+**Testing**: Backend: Vitest `unit` project (`src/**/*.spec.ts`) + `e2e` project for
+contract/integration (`test/**/*.e2e-spec.ts`) against a Testcontainers Postgres. Frontend: Vitest + Testing
 Library. Single root command `npm test` runs everything.
 
 **Target Platform**: Linux container (Node 22), behind an HTTPS-terminating proxy
@@ -67,7 +67,7 @@ collides is N / 62¹³ (5×10⁻¹⁷ at 10 million links).
 |---|---|---|
 | I. Simplicity First | Every dependency justified with rejected simpler alternative | PASS — see [research.md](research.md) §Dependencies; no plugin/adapter layers; one table; `sqids` removed, codes drawn with `node:crypto` |
 | I. Simplicity First | No speculative generality | PASS — the code generator is injected only so tests can force a collision |
-| II. Readable, Typed Code | `strict: true`, lint + format enforced by tooling | PASS — root ESLint (typescript-eslint) + Prettier, `npm run check` gates type/lint/format |
+| II. Readable, Typed Code | `strict: true`, lint + format enforced by tooling | PASS — Vite+ (`vp check`: oxfmt, oxlint with type-aware rules, TypeScript 7 type check) from one root `vite.config.ts`, plus `tsc`; `npm run check` gates type/lint/format |
 | III. Security by Default | Input validated at boundary with explicit schema | PASS — `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })` + custom `IsHttpUrl` validator using platform `URL` parser |
 | III. Security by Default | Scheme allow-list `http`/`https` | PASS — enforced in `url-validation.ts`, negative tests required |
 | III. Security by Default | Secrets via env, never logged | PASS — `DATABASE_URL` from env, validated at boot, redacted in logs; codes need no secret at all |
@@ -150,7 +150,7 @@ backend/
 │   │   └── links.repository.e2e-spec.ts
 │   └── setup/               # testcontainer lifecycle, migration runner
 ├── drizzle.config.ts
-├── jest.config.ts
+├── vite.config.mts          # Vitest unit + e2e projects, one Vite for both workspaces
 ├── tsconfig.json            # strict: true
 └── package.json
 

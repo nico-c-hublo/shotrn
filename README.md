@@ -67,7 +67,7 @@ it: an exported variable takes precedence over the file.
 | Variable                         | Example                                    | Notes                                            |
 | -------------------------------- | ------------------------------------------ | ------------------------------------------------ |
 | `DATABASE_URL`                   | `postgres://app:app@localhost:5432/shotrn` | App role needs only `SELECT`/`INSERT`            |
-| `BASE_URL`                       | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check |
+| `PUBLIC_BASE_URL`                | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check |
 | `PORT`                           | `3000`                                     |                                                  |
 | `RATE_LIMIT_CREATE_PER_HOUR`     | `60`                                       | Per client: IPv4 address or IPv6 /64             |
 | `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600`                                      | Per client: IPv4 address or IPv6 /64             |
@@ -80,7 +80,7 @@ npm run build && npm start  # production: backend serves the built SPA
 ```
 
 In development, open <http://localhost:5173>. Vite proxies `/api` and short-code paths to
-the backend, so short links work from either port. Short URLs are built from `BASE_URL`,
+the backend, so short links work from either port. Short URLs are built from `PUBLIC_BASE_URL`,
 so they point at `:3000`. After `npm start`, everything is on <http://localhost:3000>.
 
 ## Quality gate
@@ -88,7 +88,7 @@ so they point at `:3000`. After `npm start`, everything is on <http://localhost:
 All three must pass before pushing; CI runs the same.
 
 ```bash
-npm run check                  # typecheck + eslint + prettier
+npm run check                  # vp check (format, lint, TypeScript 7) + tsc
 npm test                       # unit + contract + integration + frontend
 npm audit --audit-level=high
 ```

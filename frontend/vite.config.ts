@@ -1,10 +1,9 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite';
+import { defineConfig, lazyPlugins } from 'vite-plus';
 import react from '@vitejs/plugin-react';
 
 // The dev server proxies the backend so `/:code` redirects and `/api` behave as in production.
 export default defineConfig({
-  plugins: [react()],
+  plugins: lazyPlugins(() => [react()]),
   server: {
     port: 5173,
     proxy: {

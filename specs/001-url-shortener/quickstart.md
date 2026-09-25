@@ -14,7 +14,7 @@ contain implementation code.
 ## Setup
 
 ```bash
-cp .env.example .env            # then set BASE_URL if not localhost
+cp .env.example .env            # then set PUBLIC_BASE_URL if not localhost
 npm install                     # installs both workspaces
 docker compose up -d postgres   # local dev database
 npm run db:migrate -w backend   # applies drizzle migrations
@@ -25,7 +25,7 @@ Environment variables (all validated at boot; missing/invalid ⇒ process exits)
 | Var | Example | Notes |
 |---|---|---|
 | `DATABASE_URL` | `postgres://app:app@localhost:5432/shotrn` | App role: SELECT/INSERT only |
-| `BASE_URL` | `http://localhost:3000` | Used for `shortUrl` and self-reference check |
+| `PUBLIC_BASE_URL` | `http://localhost:3000` | Used for `shortUrl` and self-reference check |
 | `PORT` | `3000` | |
 | `RATE_LIMIT_CREATE_PER_HOUR` | `60` | FR-015 |
 | `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600` | |
@@ -41,7 +41,7 @@ npm run build && npm start   # backend serves frontend/dist at / and /p/:code
 ## Quality gate (constitution §Development Workflow)
 
 ```bash
-npm run check   # tsc --noEmit + eslint + prettier --check, both workspaces
+npm run check   # vp check (oxfmt, oxlint + tsgolint, TypeScript 7) + tsc --noEmit, both workspaces
 npm test        # unit + contract + integration (Testcontainers) + frontend
 npm audit --audit-level=high
 ```
@@ -50,7 +50,7 @@ All three must pass before push. CI runs the same.
 
 ## Manual validation scenarios
 
-Replace `$B` with your `BASE_URL`.
+Replace `$B` with your `PUBLIC_BASE_URL`.
 
 ### US1 — Shorten a link
 
@@ -133,7 +133,7 @@ from the plan's structure.
 | FR-001 | `test/contract/create-link.e2e-spec.ts` | creates a link without auth and returns 201 |
 | FR-002 | same | rejects `ftp:`, `javascript:`, `data:`, `file:`, scheme-less input with 400 INVALID_URL |
 | FR-003 | same | rejects 2049-char URL, accepts 2048-char URL; message contains "2048" |
-| FR-004 | same | rejects URL whose host equals BASE_URL host |
+| FR-004 | same | rejects URL whose host equals PUBLIC_BASE_URL host |
 | FR-005, SC-004 | `test/integration/links.repository.e2e-spec.ts` + `src/links/links.service.spec.ts` | 10,000 concurrent creations yield 10,000 distinct codes; a duplicate code is refused without overwriting; a clash is answered with a fresh draw |
 | FR-006, SC-008 | `src/links/short-code.spec.ts` | generated codes match `^[0-9A-Za-z]{13}$`; every alphabet character reachable at every position |
 | FR-007 | `src/links/short-code.spec.ts` + `test/contract/create-link.e2e-spec.ts` | codes come from `crypto.randomInt`, not from any counter; no configuration value reproduces them |

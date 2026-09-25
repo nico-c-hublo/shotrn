@@ -223,7 +223,7 @@ on the DTO:
 2. Reject if length > 2048.
 3. `new URL(value)` — reject on throw.
 4. `protocol` must be `http:` or `https:`.
-5. `hostname` (lower-cased) must not equal the service's own host from `BASE_URL`.
+5. `hostname` (lower-cased) must not equal the service's own host from `PUBLIC_BASE_URL`.
 6. Store `value` (trimmed original string), not `url.href`, to preserve the exact
    input incl. fragment (FR-008). Redirect uses the stored string verbatim.
 
@@ -245,12 +245,12 @@ sits next to internal services.
 | `@nestjs/throttler` | FR-015 rate limiting | Hand-rolled token bucket is ~the same size but untested |
 | `helmet` | Constitution: baseline security headers | Setting 5 headers by hand is fine too; helmet is the audited default |
 | *(none for static files)* | Express's built-in `useStaticAssets` serves the hashed bundles; `@nestjs/serve-static` was dropped as an unused dependency | A separate static host would complicate same-origin `/:code` routing, but the Nest wrapper adds nothing over the adapter method already available |
-| React 19 + Vite 6 | User-mandated frontend | — |
-| Jest + Supertest | Nest default test stack; contract tests over HTTP | Vitest on backend requires SWC decorator config — not worth two configs |
+| React 19 + Vite 8 (as Vite+ core) | User-mandated frontend | — |
+| Vitest + Supertest (backend) | One test runner for both workspaces, and the one Vite+ runs; contract tests over HTTP | Jest was the original choice (the Nest default) because Vitest on Vite 6 needed SWC to emit decorator metadata. Vite 8 transforms with Oxc, which emits it, so that cost is gone (Phase 10) |
 | Vitest + Testing Library | Vite-native frontend tests | — |
 | `@testcontainers/postgresql` | Constitution IV: one command, no manually provisioned state | `pg-mem` is not Postgres-faithful (identity, TIMESTAMPTZ); docker-compose-managed test DB is "manually provisioned state" |
-| ESLint (typescript-eslint) + Prettier | Constitution II: tooling-enforced quality. Type-aware since Phase 9, so unawaited promises (including supertest thenables) fail the gate | — |
-| `eslint-plugin-react-hooks` | Rules of hooks and exhaustive effect dependencies: violations compile fine and fail only at run time | Review alone misses a missing effect dependency; the React team's own plugin is the reference implementation |
+| Vite+ (`vite-plus`) | One toolchain for build, dev server, tests, lint, format and type check: Vite 8 core, Vitest 5, oxlint with type-aware rules (tsgolint, TypeScript 7) and oxfmt, configured from one root `vite.config.ts`. Replaced ESLint, typescript-eslint, @eslint/js, Prettier, Jest and ts-jest (Phase 10). The lint rules are the effective ESLint rules, plus oxlint's correctness category, checked with planted violations | Keeping ESLint + Prettier + Jest worked, but meant three configurations and three upgrade cadences for one repository. **Risk, accepted**: this is `1.0.0-rc.0`. It aliases `vite` to its own core (`@voidzero-dev/vite-plus-core`) and pins exact versions of oxlint, oxfmt (0.x) and tsgolint (a TypeScript 7 preview), so upgrades arrive together on VoidZero's schedule. The lockfile, the CI gate and Dependabot catch a bad release; falling back means restoring the Phase 9 configuration from git |
+| `eslint-plugin-react-hooks` (inside oxlint) | Rules of hooks and exhaustive effect dependencies: violations compile fine and fail only at run time. Loaded through oxlint's `jsPlugins`, because oxlint's built-in rules-of-hooks and exhaustive-deps missed planted violations | Review alone misses a missing effect dependency; the React team's own plugin is the reference implementation |
 
 ## 9. Frontend routing without a router
 

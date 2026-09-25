@@ -18,7 +18,7 @@ describe('documented .env flow', () => {
     const contents = readFileSync(example, 'utf8');
     for (const name of [
       'DATABASE_URL',
-      'BASE_URL',
+      'PUBLIC_BASE_URL',
       'PORT',
       'RATE_LIMIT_CREATE_PER_HOUR',
       'RATE_LIMIT_REDIRECT_PER_MINUTE',

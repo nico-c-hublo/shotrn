@@ -13,10 +13,15 @@ Operational guidance for agents and developers. It must not contradict
 ## Commands
 
 ```bash
-npm run check   # typecheck + eslint + prettier — must pass before pushing
+npm run check   # vp check (oxfmt, oxlint, TypeScript 7) + tsc — must pass before pushing
 npm test        # unit + contract + integration + frontend; needs Docker, nothing else
 npm run dev     # backend :3000 + Vite :5173
 ```
+
+Use npm 11 or later. It writes the lockfile, and npm 10 (bundled with Node 22) resolves
+optional peer dependencies differently: it rejects an npm 11 lockfile in `npm ci`, and
+an npm 10 `npm install` rewrites it for everyone else. CI installs npm 11 for the same
+reason.
 
 Tests provision their own PostgreSQL through Testcontainers. Never point the suite at a
 hand-created database: "no manually provisioned state" is a constitutional requirement.
@@ -48,9 +53,9 @@ documentation commit and reports it as the culprit.
 The early code commits ran both test runners with `--passWithNoTests`, which kept them
 runnable before any test existed; those commits keep the flag in their own
 `package.json`. From Phase 9 on it is gone, so a run that collects no tests fails.
-Jest only fails when no project collects anything, though: a broken `testMatch` in one
-project can still go unnoticed while the other finds tests. If you change a glob,
-confirm the suite still collects the expected number of tests.
+A runner with several projects only fails when _none_ collects anything, so the
+backend's `npm test` runs its `unit` and `e2e` Vitest projects one after the other:
+a broken `include` glob in either fails the run instead of hiding behind the other.
 
 When adding a file, put it in the same commit as the code it references. Two ordering
 defects were fixed by that rule: the end-to-end harness imported `src/main` before it
