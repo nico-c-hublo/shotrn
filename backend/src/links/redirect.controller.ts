@@ -1,9 +1,8 @@
-import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Res } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { LinksService } from './links.service';
 import { sendSpa } from './spa';
-import { UnknownCodeGuard } from './unknown-code.guard';
 
 /**
  * The public redirect. Registered last so `/api/...` and `/p/:code` win the route match.
@@ -17,17 +16,16 @@ export class RedirectController {
 
   @Get(':code')
   @SkipThrottle({ create: true })
-  @UseGuards(UnknownCodeGuard)
   async redirect(@Param('code') code: string, @Res() res: Response): Promise<void> {
     const resolved = await this.links.resolve(code);
 
     if (resolved.outcome === 'not-found') {
-      sendSpa(res, 404, { kind: 'not-found' });
+      sendSpa(res, 404);
       return;
     }
 
     if (resolved.outcome === 'expired') {
-      sendSpa(res, 410, { kind: 'expired', expiresAt: resolved.response.expiresAt });
+      sendSpa(res, 410);
       return;
     }
 

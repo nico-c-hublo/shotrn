@@ -11,7 +11,6 @@ describe('loadEnv', () => {
     expect(env.port).toBe(3000);
     expect(env.rateLimitCreatePerHour).toBe(60);
     expect(env.rateLimitRedirectPerMinute).toBe(600);
-    expect(env.rateLimitUnknownCodePer10Minutes).toBe(20);
     expect(env.baseHostname).toBe('localhost');
   });
 

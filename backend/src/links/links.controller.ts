@@ -1,11 +1,10 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Res } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { LinkNotFoundError } from '../common/errors';
 import { CreateLinkDto } from './dto/create-link.dto';
 import type { ExpiredLinkResponse, LinkResponse } from './dto/link.response';
 import { LinksService } from './links.service';
-import { UnknownCodeGuard } from './unknown-code.guard';
 
 @Controller('api/links')
 export class LinksController {
@@ -25,7 +24,6 @@ export class LinksController {
    */
   @Get(':code')
   @SkipThrottle({ create: true })
-  @UseGuards(UnknownCodeGuard)
   async findOne(
     @Param('code') code: string,
     @Res({ passthrough: true }) res: Response,

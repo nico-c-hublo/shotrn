@@ -81,6 +81,26 @@ describe('throttler isolation', () => {
     await request(server).get(`/api/links/${body.code}`).expect(429);
   });
 
+  // FR-020: a refusal must not tell a guesser whether the code exists. The throttler
+  // refuses before the lookup, so a real and an unknown code get the same answer.
+  it('refuses a real and an unknown code identically once the limit is reached', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '1000',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '2',
+    });
+    const server = ctx.app.getHttpServer();
+    const { body } = await request(server).post('/api/links').send({ url: 'https://example.com/' });
+
+    await request(server).get(`/${body.code}`).expect(301);
+    await request(server).get('/zzzzzzzzzzzzz').expect(404);
+
+    const real = await request(server).get(`/${body.code}`).expect(429);
+    const unknown = await request(server).get('/zzzzzzzzzzzzy').expect(429);
+    expect(unknown.body).toEqual(real.body);
+    expect(unknown.headers['retry-after']).toBe(real.headers['retry-after']);
+    expect(real.headers.location).toBeUndefined();
+  });
+
   it('leaves the app shell unthrottled', async () => {
     ctx = await createTestApp({
       RATE_LIMIT_CREATE_PER_HOUR: '1',

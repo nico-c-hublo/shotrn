@@ -19,10 +19,11 @@ GET  /k9Xz2QmB7rTq4  →  format check  →  SELECT by primary key  →  301/302
 
 Nothing derives a code (no counter, key or alphabet), so no configuration value or leak
 short of the database itself lets anyone compute one. The only attack left is guessing
-among 62¹³ ≈ 2.0×10²³ codes (~77.4 bits), and each client (IPv4 address or IPv6 /64)
-may look up only 20 unknown codes per 10 minutes before every lookup it makes is
-refused. With 10 million links, 10,000 coordinated clients would find fewer than
-0.0003 links a year. An expired link says when it expired, never where it pointed.
+among 62¹³ ≈ 2.0×10²³ codes (~77.4 bits), at no more than 600 lookups a minute per route
+for each client (IPv4 address or IPv6 /64). With 10 million links, 10,000 coordinated
+clients would find about 0.0003 links a year, one every ~3,200 years. The length does
+the work, so nobody is locked out for mistyping a code. An expired link says when it
+expired, never where it pointed.
 
 A clash with an existing code is reported by the insert as an empty result, and the
 service draws again. The odds are about 5×10⁻¹⁷ per draw at 10 million links, so three
@@ -63,14 +64,13 @@ it: an exported variable takes precedence over the file.
 
 ### Environment
 
-| Variable                                 | Example                                    | Notes                                                                                                |
-| ---------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                           | `postgres://app:app@localhost:5432/shotrn` | App role needs only `SELECT`/`INSERT`                                                                |
-| `BASE_URL`                               | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check                                                     |
-| `PORT`                                   | `3000`                                     |                                                                                                      |
-| `RATE_LIMIT_CREATE_PER_HOUR`             | `60`                                       | Per client: IPv4 address or IPv6 /64                                                                 |
-| `RATE_LIMIT_REDIRECT_PER_MINUTE`         | `600`                                      | Per client: IPv4 address or IPv6 /64                                                                 |
-| `RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES` | `20`                                       | Per client, redirect and preview combined. Once spent, every lookup is refused until the window ends |
+| Variable                         | Example                                    | Notes                                            |
+| -------------------------------- | ------------------------------------------ | ------------------------------------------------ |
+| `DATABASE_URL`                   | `postgres://app:app@localhost:5432/shotrn` | App role needs only `SELECT`/`INSERT`            |
+| `BASE_URL`                       | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check |
+| `PORT`                           | `3000`                                     |                                                  |
+| `RATE_LIMIT_CREATE_PER_HOUR`     | `60`                                       | Per client: IPv4 address or IPv6 /64             |
+| `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600`                                      | Per client: IPv4 address or IPv6 /64             |
 
 ## Run
 
@@ -141,9 +141,8 @@ Each choice is justified, with alternatives considered, in
 
 ## Assumptions & shortcuts
 
-- **Rate limits are per instance.** `@nestjs/throttler` and the unknown-code limiter keep
-  their counts in memory, so with N backend instances the effective limit is N× the
-  configured one. Acceptable for v1 abuse control; a Redis store is the upgrade path (§6).
+- **Rate limits are per instance.** `@nestjs/throttler` keeps its counts in memory, so
+  with N backend instances the effective limit is N× the configured one. Acceptable for v1 abuse control; a Redis store is the upgrade path (§6).
 - **One reverse proxy in front.** `trust proxy` is set to `1`, so client IPs (and
   therefore rate-limit keys) are only correct behind exactly one proxy. Adjust it in
   `backend/src/main.ts` for other topologies.

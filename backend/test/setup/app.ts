@@ -21,7 +21,6 @@ export async function createTestApp(overrides: Partial<NodeJS.ProcessEnv> = {}):
     ...process.env,
     RATE_LIMIT_CREATE_PER_HOUR: '100000',
     RATE_LIMIT_REDIRECT_PER_MINUTE: '100000',
-    RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES: '100000',
     ...overrides,
   });
 
