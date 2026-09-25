@@ -156,19 +156,22 @@ backend/
 
 frontend/
 ├── src/
-│   ├── main.tsx
+│   ├── main.tsx             # applies the stored colour scheme, then renders
 │   ├── App.tsx              # picks screen from location.pathname (/ or /p/:code)
+│   ├── theme.ts             # stored colour scheme choice (research.md §13)
 │   ├── api/
 │   │   └── links.ts         # typed fetch wrappers matching contracts/openapi.yaml
 │   ├── components/
 │   │   ├── ShortenForm.tsx  # url input + expiry select + client-side validation
 │   │   ├── ResultCard.tsx   # short link, QR code, copy button, expiry display
-│   │   └── PreviewCard.tsx  # original URL, created/expires, "go" link
+│   │   ├── PreviewCard.tsx  # original URL, created/expires, "go" link
+│   │   └── ThemeToggle.tsx  # sun / moon colour scheme toggle
 │   └── styles.css
 ├── tests/
 │   ├── ShortenForm.test.tsx
 │   ├── ResultCard.test.tsx
-│   └── PreviewCard.test.tsx
+│   ├── PreviewCard.test.tsx
+│   └── ThemeToggle.test.tsx
 ├── index.html
 ├── vite.config.ts           # dev proxy /api and /:code → backend
 ├── tsconfig.json            # strict: true
@@ -207,5 +210,6 @@ Re-evaluated after Phase 1 (data-model, contracts, quickstart):
   negative cases for FR-002/003/004/013/015. PASS.
 - No new dependency introduced during design. PASS.
 - FR-021 later added `qrcode.react`, justified in research.md §12 and §Dependencies. PASS.
+- FR-023 (colour scheme toggle) adds no dependency and no CSP change (research.md §13). PASS.
 
 **Gate result (post-design)**: PASS.

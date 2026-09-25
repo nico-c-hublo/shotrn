@@ -302,3 +302,36 @@ link from 36rem upwards.
   matrix (needs our own renderer).
 - A server endpoint returning an image: another route to validate and rate-limit, for
   data the browser already has.
+
+## 13. Colour scheme toggle
+
+**Decision**: Each colour token is one `light-dark()` pair on `:root`, and the scheme is
+picked by the `color-scheme` property: `light dark` (the device decides) by default,
+pinned by `data-theme="light"` or `"dark"` on `<html>`. The choice is kept in
+`localStorage` under `theme`. `main.tsx` applies it before React renders; `ThemeToggle`
+changes it and highlights the scheme in effect, following the device while nothing is
+stored.
+
+**Rationale**:
+- `light-dark()` states each pair once. A media query plus a `[data-theme]` override
+  would need every dark token written twice, and the copies would drift.
+- `color-scheme` also switches native controls (the expiry `<select>`, scrollbars), so
+  the toggle changes the whole page, not only our colours.
+- The CSP allows no inline script (`script-src 'self'`), so the usual pre-paint snippet
+  in `index.html` cannot run. Applying the choice in the entry module is the earliest
+  point the CSP permits; a visitor whose pick differs from the device can see the
+  device's scheme for one frame on a slow load.
+- Storage can throw (blocked site data, some private modes). Every access is guarded,
+  and a failure leaves the page following the device, which is where it started.
+- The switch cross-fades through the View Transitions API: one snapshot of the whole
+  page, native controls and the QR code included, and only when the visitor picks. A
+  CSS `transition` on every element would also animate the first paint, slow every hover
+  effect, and cannot reach native controls. Browsers without the API, and visitors who
+  ask for reduced motion, get the instant switch.
+- No dependency: two buttons and a few lines of storage handling.
+
+**Alternatives considered**:
+- A three-way light/dark/system control: the request was a two-icon toggle, and until
+  the first pick the page already follows the device.
+- Hashing an inline script into the CSP: every edit to the snippet changes the hash,
+  and the backend would have to know the frontend's source.
