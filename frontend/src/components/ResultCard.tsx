@@ -22,7 +22,8 @@ export function ResultCard({ link }: Props) {
     <section className="card" aria-label="Your short link">
       <p className="short-url">{link.shortUrl}</p>
 
-      <button type="button" onClick={copy}>
+      {/* copy() handles its own failure; `void` marks the promise as deliberately unawaited. */}
+      <button type="button" onClick={() => void copy()}>
         {copied ? 'Copied!' : 'Copy'}
       </button>
 
