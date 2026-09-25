@@ -142,8 +142,7 @@ backend/
 │   └── common/
 │       ├── http-exception.filter.ts  # stable { error: { code, message } } shape
 │       ├── errors.ts                 # domain error classes + codes
-│       ├── client-key.ts             # rate-limit key: IPv4 address or IPv6 /64
-│       └── client-key.spec.ts
+│       └── client-key.ts             # IPv4 address or IPv6 /64, via the throttler's normalizeIp
 ├── test/
 │   ├── contract/            # supertest against full Nest app + Testcontainers PG
 │   │   ├── create-link.e2e-spec.ts

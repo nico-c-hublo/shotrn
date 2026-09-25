@@ -242,8 +242,8 @@ from one client exhaust its budget and the 21st lookup, even of a real code, ret
 
 ### Unknown-code limit and /64 keying (FR-015, FR-020)
 
-- [ ] T090 [P] Unit tests in `backend/src/common/client-key.spec.ts`: IPv4 unchanged; IPv4-mapped IPv6 reduced to IPv4; IPv6 addresses in one /64 (compressed, expanded, zone-suffixed) share a key; different /64s do not
-- [ ] T091 Implement `backend/src/common/client-key.ts` and use it as the `getTracker` of every throttler in `backend/src/app.module.ts`
+- [X] T090 [P] Contract test in `backend/test/contract/rate-limit.e2e-spec.ts`: two addresses in one IPv6 /64 share the create limit, and another /64 does not
+- [X] T091 Key every throttler per IPv6 /64: `@nestjs/throttler` does so by default since 6.7 (`normalizeIp`), so raise the dependency floor to 6.7 and set `ipv6SubnetPrefix: 64` explicitly in `backend/src/app.module.ts` rather than hand-rolling an address parser
 - [ ] T092 [P] Unit tests in `backend/src/links/unknown-code-limiter.spec.ts` with an injected clock: the budget is refused once spent and restored when the window ends; a spent budget refuses hits too; hits return their reservation; concurrent in-flight lookups cannot overrun the budget; `Retry-After` reflects the window; idle clients are swept
 - [ ] T093 Implement `backend/src/links/unknown-code-limiter.ts` and `unknown-code.guard.ts`, configured by `RATE_LIMIT_UNKNOWN_CODE_PER_10_MINUTES` (default 20) and applied to `GET /:code` and `GET /api/links/:code`; document the variable in `.env.example`, `README.md` and `CLAUDE.md`
 - [ ] T094 Contract tests in `backend/test/contract/unknown-code-limit.e2e-spec.ts`: redirect and preview share one budget; the exhausted budget returns 429 with `Retry-After` for a real code; hits never consume it; another client is unaffected; two addresses in one IPv6 /64 share a budget, two /64s do not

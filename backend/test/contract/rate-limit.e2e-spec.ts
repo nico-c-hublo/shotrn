@@ -94,6 +94,27 @@ describe('throttler isolation', () => {
     }
   });
 
+  // Behind the proxy (trust proxy = 1) the client address comes from X-Forwarded-For.
+  it('counts every address in one IPv6 /64 as one client', async () => {
+    ctx = await createTestApp({
+      RATE_LIMIT_CREATE_PER_HOUR: '2',
+      RATE_LIMIT_REDIRECT_PER_MINUTE: '1000',
+    });
+    const server = ctx.app.getHttpServer();
+    const createFrom = (ip: string) =>
+      request(server)
+        .post('/api/links')
+        .set('X-Forwarded-For', ip)
+        .send({ url: 'https://example.com/' });
+
+    await createFrom('2001:db8:1:2::1').expect(201);
+    await createFrom('2001:db8:1:2::2').expect(201);
+    await createFrom('2001:db8:1:2:ffff::3').expect(429);
+
+    // A different /64 is a different client.
+    await createFrom('2001:db8:1:3::1').expect(201);
+  });
+
   it('does not count creations against the redirect limit', async () => {
     ctx = await createTestApp({
       RATE_LIMIT_CREATE_PER_HOUR: '1000',

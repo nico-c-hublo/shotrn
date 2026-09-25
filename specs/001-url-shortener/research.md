@@ -154,6 +154,10 @@ address (`::ffff:a.b.c.d`) as its IPv4 form; any other IPv6 address as its /64 p
 A single subscriber is routinely delegated a whole /64 (2⁶⁴ addresses), so keying on
 the full address would let one client rotate addresses and escape every limit. The
 key applies to all three limits, since the same rotation defeats the create limit.
+`@nestjs/throttler` has keyed this way by default since 6.7 (`normalizeIp`), so the
+dependency floor is raised to 6.7, the prefix is set explicitly so a changed default
+cannot loosen it, and the unknown-code limiter reuses the same function. No address
+parsing is hand-rolled.
 
 **Unknown-code limit** (amended 2026-09-25): the redirect limit alone allows 864,000
 guesses per client per day, which §2 shows is the dominant term. Real visitors almost

@@ -151,7 +151,7 @@ from the plan's structure.
 | FR-017 | `test/contract/*.e2e-spec.ts` | forced repository failure → 500 `{ error: { code: INTERNAL } }` with no stack or SQL in body |
 | FR-018 | `test/contract/create-link.e2e-spec.ts` | posting the same URL twice yields two different codes |
 | FR-019 | `contracts/openapi.yaml` | contract tests assert response shapes against the schema |
-| FR-020, SC-009 | `test/contract/unknown-code-limit.e2e-spec.ts` + `src/links/unknown-code-limiter.spec.ts` + `src/common/client-key.spec.ts` | budget shared by redirect and preview; exhausted budget refuses hits too; hits do not consume it; concurrent guesses cannot overrun it; IPv6 addresses in one /64 share a budget |
+| FR-020, SC-009 | `test/contract/unknown-code-limit.e2e-spec.ts` + `src/links/unknown-code-limiter.spec.ts` + `test/contract/rate-limit.e2e-spec.ts` | budget shared by redirect and preview; exhausted budget refuses hits too; hits do not consume it; concurrent guesses cannot overrun it; IPv6 addresses in one /64 share a budget |
 | Security headers | `test/contract/redirect.e2e-spec.ts` | `X-Content-Type-Options`, `X-Frame-Options`/CSP, `Referrer-Policy` present on every response |
 | Secrets | `src/config/env.spec.ts` | boot fails on missing DATABASE_URL; log output never contains its value |
 

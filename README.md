@@ -65,8 +65,8 @@ it: an exported variable takes precedence over the file.
 | `DATABASE_URL`                   | `postgres://app:app@localhost:5432/shotrn` | App role needs only `SELECT`/`INSERT`            |
 | `BASE_URL`                       | `http://localhost:3000`                    | Used for `shortUrl` and the self-reference check |
 | `PORT`                           | `3000`                                     |                                                  |
-| `RATE_LIMIT_CREATE_PER_HOUR`     | `60`                                       | Per client IP                                    |
-| `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600`                                      | Per client IP                                    |
+| `RATE_LIMIT_CREATE_PER_HOUR`     | `60`                                       | Per client: IPv4 address or IPv6 /64             |
+| `RATE_LIMIT_REDIRECT_PER_MINUTE` | `600`                                      | Per client: IPv4 address or IPv6 /64             |
 
 ## Run
 

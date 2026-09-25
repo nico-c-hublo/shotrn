@@ -98,7 +98,8 @@ weaken one without amending the constitution first.
 - An expired link reveals when it expired, never where it pointed. The expired
   `Resolution` carries no row, so a controller has nothing to leak.
 - Both public paths are rate limited, on separate throttlers so creation limits cannot
-  block redirects.
+  block redirects. Clients are keyed per IPv4 address or IPv6 /64
+  (`ipv6SubnetPrefix: 64`), so rotating addresses in one allocation resets nothing.
 
 ## Style
 
